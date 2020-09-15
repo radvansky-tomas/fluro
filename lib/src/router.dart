@@ -14,6 +14,7 @@ import 'package:fluro/src/common.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:universal_platform/universal_platform.dart';
 
 class FluroRouter {
   static final appRouter = FluroRouter();
@@ -127,7 +128,7 @@ class FluroRouter {
       bool isNativeTransition = (transition == TransitionType.native ||
           transition == TransitionType.nativeModal);
       if (isNativeTransition) {
-        if (Theme.of(buildContext).platform == TargetPlatform.iOS) {
+        if (UniversalPlatform.isIOS) {
           return CupertinoPageRoute<dynamic>(
               settings: routeSettings,
               fullscreenDialog: transition == TransitionType.nativeModal,
