@@ -5,7 +5,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:name="com.goposse.fluro.App"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/appName">
@@ -15,6 +14,11 @@
             android:hardwareAccelerated="true"
             android:theme="@android:style/Theme.Black.NoTitleBar"
             android:windowSoftInputMode="adjustResize">
+            <!-- You can name this style whatever you'd like -->
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"
+                />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -26,5 +30,8 @@
                 <data android:host="deeplink" android:scheme="fluro" />
             </intent-filter>
         </activity>
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
     </application>
 </manifest>
