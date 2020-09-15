@@ -124,15 +124,15 @@ class RouteTree {
           <RouteTreeNode, RouteTreeNodeMatch>{};
       List<RouteTreeNode> nextNodes = <RouteTreeNode>[];
 
-      String pathPart = checkComponent;
-      Map<String, List<String>> queryMap;
-      if (checkComponent.contains("?")) {
-        var splitParam = checkComponent.split("?");
-        pathPart = splitParam[0];
-        queryMap = parseQueryString(splitParam[1]);
-      }
-
       for (RouteTreeNode node in nodesToCheck) {
+        String pathPart = checkComponent;
+        Map<String, List<String>> queryMap;
+        if (checkComponent.contains("?")) {
+          var splitParam = checkComponent.split("?");
+          pathPart = splitParam[0];
+          queryMap = parseQueryString(splitParam[1]);
+        }
+
         bool isMatch = (node.part == pathPart || node.isParameter());
         if (isMatch) {
           RouteTreeNodeMatch parentMatch = nodeMatches[node.parent];

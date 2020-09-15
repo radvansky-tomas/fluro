@@ -37,7 +37,7 @@ class DemoSimpleComponent extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(left: 50.0, right: 50.0, top: 15.0),
             child: Text(
-              message,
+              message ?? '',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: ColorHelpers.blackOrWhiteContrastColor(color),
