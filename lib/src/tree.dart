@@ -131,7 +131,7 @@ class RouteTree {
         pathPart = splitParam[0];
         queryMap = parseQueryString(splitParam[1]);
       }
-      
+
       for (RouteTreeNode node in nodesToCheck) {
         bool isMatch = (node.part == pathPart || node.isParameter());
         if (isMatch) {
