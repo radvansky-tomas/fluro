@@ -127,7 +127,7 @@ class FluroRouter {
         (RouteSettings routeSettings, Map<String, List<String>> parameters) {
       bool isNativeTransition = (transition == TransitionType.native ||
           transition == TransitionType.nativeModal);
-      if (isNativeTransition) {
+      if (isNativeTransition && !UniversalPlatform.isWeb) {
         if (UniversalPlatform.isIOS) {
           return CupertinoPageRoute<dynamic>(
               settings: routeSettings,
