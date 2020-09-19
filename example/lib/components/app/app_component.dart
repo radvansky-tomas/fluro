@@ -10,6 +10,7 @@ import 'package:fluro/fluro.dart';
 import 'package:flutter/material.dart';
 
 import '../../config/application.dart';
+import '../../config/application.dart';
 import '../../config/routes.dart';
 
 class AppComponent extends StatefulWidget {
@@ -35,8 +36,8 @@ class AppComponentState extends State<AppComponent> {
         primarySwatch: Colors.blue,
       ),
       onGenerateRoute: Application.router.generator,
+      onGenerateInitialRoutes: Application.router.initialGenerator,
     );
-//    print("initial route = ${app.initialRoute}");
     return app;
   }
 }

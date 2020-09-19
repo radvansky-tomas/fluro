@@ -39,7 +39,8 @@ class FluroRouter {
     return _routeTree.matchRoute(path);
   }
 
-  pop<T extends Object>(BuildContext context, [T result]) => Navigator.pop(context, result);
+  pop<T extends Object>(BuildContext context, [T result]) =>
+      Navigator.pop(context, result);
 
   ///
   Future navigateTo(BuildContext context, String path,
@@ -179,9 +180,12 @@ class FluroRouter {
         );
       }
     };
+
+    PageRoute createdRoute = creator(settingsToUse, parameters);
+
     return RouteMatch(
       matchType: RouteMatchType.visual,
-      route: creator(settingsToUse, parameters),
+      route: createdRoute,
     );
   }
 
@@ -223,9 +227,20 @@ class FluroRouter {
   /// if any defined handler is found. It can also be used with the [MaterialApp.onGenerateRoute]
   /// property as callback to create routes that can be used with the [Navigator] class.
   Route<dynamic> generator(RouteSettings routeSettings) {
+    print('generator - ' + routeSettings.toString());
     RouteMatch match =
         matchRoute(null, routeSettings.name, routeSettings: routeSettings);
+    printTree();
     return match.route;
+  }
+
+  List<Route<dynamic>> initialGenerator(String path) {
+    print('initialGenerator' + path);
+    RouteMatch match = matchRoute(null, path, routeSettings: null);
+    RouteMatch rootMatch = matchRoute(null, '/', routeSettings: null);
+    return path != null && path != '/'
+        ? [rootMatch.route, match.route]
+        : [rootMatch.route];
   }
 
   /// Prints the route tree so you can analyze it.
