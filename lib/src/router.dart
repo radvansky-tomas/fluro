@@ -169,15 +169,25 @@ class FluroRouter {
         } else {
           routeTransitionsBuilder = _standardTransitionsBuilder(transition);
         }
-        return PageRouteBuilder<dynamic>(
-          settings: routeSettings,
-          pageBuilder: (BuildContext context, Animation<double> animation,
-              Animation<double> secondaryAnimation) {
-            return handler.handlerFunc(context, parameters);
-          },
-          transitionDuration: transitionDuration,
-          transitionsBuilder: routeTransitionsBuilder,
-        );
+        if (UniversalPlatform.isWeb) {
+          return MaterialPageRoute<dynamic>(
+              settings: routeSettings,
+              fullscreenDialog:
+                  transition == TransitionType.materialFullScreenDialog,
+              builder: (BuildContext context) {
+                return handler.handlerFunc(context, parameters);
+              });
+        } else {
+          return PageRouteBuilder<dynamic>(
+            settings: routeSettings,
+            pageBuilder: (BuildContext context, Animation<double> animation,
+                Animation<double> secondaryAnimation) {
+              return handler.handlerFunc(context, parameters);
+            },
+            transitionDuration: transitionDuration,
+            transitionsBuilder: routeTransitionsBuilder,
+          );
+        }
       }
     };
 
