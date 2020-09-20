@@ -27,7 +27,7 @@ typedef Route<T> RouteCreator<T>(
     RouteSettings route, Map<String, List<String>> parameters);
 
 ///
-typedef Widget HandlerFunc(
+typedef Future<Widget> HandlerFunc(
     BuildContext context, Map<String, List<String>> parameters);
 
 ///

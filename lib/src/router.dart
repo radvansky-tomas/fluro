@@ -92,10 +92,19 @@ class FluroRouter {
       return MaterialPageRoute<Null>(
           settings: routeSettings,
           builder: (BuildContext context) {
-            return notFoundHandler.handlerFunc(context, parameters);
+            return futureWidget(
+                context, notFoundHandler.handlerFunc(context, parameters));
           });
     };
     return creator(RouteSettings(name: path), null);
+  }
+
+  Widget futureWidget(BuildContext context, Future<Widget> data) {
+    return FutureBuilder<Widget>(
+        future: data,
+        builder: (context, AsyncSnapshot<Widget> snapshot) {
+          return snapshot.hasData ? snapshot.data : Container();
+        });
   }
 
   ///
@@ -137,14 +146,16 @@ class FluroRouter {
               settings: routeSettings,
               fullscreenDialog: transition == TransitionType.nativeModal,
               builder: (BuildContext context) {
-                return handler.handlerFunc(context, parameters);
+                return futureWidget(
+                    context, handler.handlerFunc(context, parameters));
               });
         } else {
           return MaterialPageRoute<dynamic>(
               settings: routeSettings,
               fullscreenDialog: transition == TransitionType.nativeModal,
               builder: (BuildContext context) {
-                return handler.handlerFunc(context, parameters);
+                return futureWidget(
+                    context, handler.handlerFunc(context, parameters));
               });
         }
       } else if (transition == TransitionType.material ||
@@ -154,7 +165,8 @@ class FluroRouter {
             fullscreenDialog:
                 transition == TransitionType.materialFullScreenDialog,
             builder: (BuildContext context) {
-              return handler.handlerFunc(context, parameters);
+              return futureWidget(
+                  context, handler.handlerFunc(context, parameters));
             });
       } else if (transition == TransitionType.cupertino ||
           transition == TransitionType.cupertinoFullScreenDialog) {
@@ -163,7 +175,8 @@ class FluroRouter {
             fullscreenDialog:
                 transition == TransitionType.cupertinoFullScreenDialog,
             builder: (BuildContext context) {
-              return handler.handlerFunc(context, parameters);
+              return futureWidget(
+                  context, handler.handlerFunc(context, parameters));
             });
       } else {
         var routeTransitionsBuilder;
@@ -178,14 +191,16 @@ class FluroRouter {
               fullscreenDialog:
                   transition == TransitionType.materialFullScreenDialog,
               builder: (BuildContext context) {
-                return handler.handlerFunc(context, parameters);
+                return futureWidget(
+                    context, handler.handlerFunc(context, parameters));
               });
         } else {
           return PageRouteBuilder<dynamic>(
             settings: routeSettings,
             pageBuilder: (BuildContext context, Animation<double> animation,
                 Animation<double> secondaryAnimation) {
-              return handler.handlerFunc(context, parameters);
+              return futureWidget(
+                  context, handler.handlerFunc(context, parameters));
             },
             transitionDuration: transitionDuration,
             transitionsBuilder: routeTransitionsBuilder,
