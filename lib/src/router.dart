@@ -18,6 +18,9 @@ import 'package:universal_platform/universal_platform.dart';
 
 class FluroRouter {
   static final appRouter = FluroRouter();
+  final RouteMatchType requiredInitialMatchType;
+
+  FluroRouter({this.requiredInitialMatchType = RouteMatchType.visual});
 
   /// The tree structure that stores the defined routes
   final RouteTree _routeTree = RouteTree();
@@ -237,20 +240,37 @@ class FluroRouter {
   /// if any defined handler is found. It can also be used with the [MaterialApp.onGenerateRoute]
   /// property as callback to create routes that can be used with the [Navigator] class.
   Route<dynamic> generator(RouteSettings routeSettings) {
-    print('generator - ' + routeSettings.toString());
     RouteMatch match =
         matchRoute(null, routeSettings.name, routeSettings: routeSettings);
-    printTree();
     return match.route;
   }
 
+  /// InitialRoute Generator method. This function can be used as a way to create initial routes on
+  /// hard page refresh or deep links. Its dependant on [requiredInitialMatchType] which is by default
+  /// set to [RouteMatchType.visual]. In that case full PATH needs to match to return just its result.
+  /// Otherwise [path] is parsed into multiple segments divided by '/' to provide partial routes as history.
   List<Route<dynamic>> initialGenerator(String path) {
-    print('initialGenerator' + path);
-    RouteMatch match = matchRoute(null, path, routeSettings: null);
     RouteMatch rootMatch = matchRoute(null, '/', routeSettings: null);
-    return path != null && path != '/'
-        ? [rootMatch.route, match.route]
-        : [rootMatch.route];
+    if (this.requiredInitialMatchType == RouteMatchType.visual) {
+      //Requires full match but not found, redirect to initial page
+      return [rootMatch.route];
+    } else {
+      //Requires full processing
+      var segments = path.split('/');
+      List<Route<dynamic>> result = [];
+      if (segments != null && segments.length > 0) {
+        for (int i = 0; i < segments.length + 1; i++) {
+          var joined = segments.sublist(0, i).join('/');
+          result.add(matchRoute(null, joined.isEmpty ? '/' : joined).route);
+        }
+      }
+      if (result.length > 0) {
+        return result;
+      } else {
+        //Requires full processing but not found, redirect to initial page
+        return [rootMatch.route];
+      }
+    }
   }
 
   /// Prints the route tree so you can analyze it.
