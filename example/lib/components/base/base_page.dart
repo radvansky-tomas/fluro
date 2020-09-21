@@ -15,18 +15,18 @@ class BasePageState extends State<BasePage> {
   void initState() {
     super.initState();
     _authService = AuthService();
-    _authService.getCurrentUser().then((value) {
-      if (value != null && value.isNotEmpty) {
-        Application.router
-            .navigateTo(context, Routes.home, clearStack: true, replace: true);
-      } else {
-        Application.router.navigateTo(context, Routes.authLogin,
-            clearStack: true, replace: true);
-      }
-    }).catchError(() {
-      Application.router.navigateTo(context, Routes.authLogin,
-          clearStack: true, replace: true);
-    });
+    // _authService.getCurrentUser().then((value) {
+    //   if (value != null && value.isNotEmpty) {
+    //     Application.router
+    //         .navigateTo(context, Routes.home, clearStack: true, replace: true);
+    //   } else {
+    //     Application.router.navigateTo(context, Routes.authLogin,
+    //         clearStack: true, replace: true);
+    //   }
+    // }).catchError(() {
+    //   Application.router.navigateTo(context, Routes.authLogin,
+    //       clearStack: true, replace: true);
+    // });
   }
 
   @override

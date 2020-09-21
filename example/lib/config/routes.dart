@@ -15,13 +15,14 @@ import 'package:router_example/components/base/base_page.dart';
 import 'package:router_example/components/home/contacts/contact_detail_page.dart';
 import 'package:router_example/components/home/home_page.dart';
 import 'package:router_example/config/application.dart';
+import 'package:router_example/services/auth_service.dart';
 
 class Routes {
   static String root = "/";
-  static String home = "/home";
   static String auth = "/auth";
   static String authLogin = "/auth/login";
   static String authRegister = "/auth/register";
+  static String home = "/home";
   static String homeDashboard = "/home/dashboard";
   static String homeContacts = "/home/contacts";
   static String contactDetail = "/home/contacts/:contactId";
@@ -31,22 +32,36 @@ class Routes {
         handlerFunc: (BuildContext context, Map<String, List<String>> params) {
       print("ROUTE WAS NOT FOUND !!!");
     });
-    router.define(root, handler: rootHandler);
+    router.define(root,
+        handler: rootHandler, transitionType: TransitionType.fadeIn);
 
-    router.define(auth, handler: authHandler);
-    router.define(authLogin, handler: authLoginHandler);
-    router.define(authRegister, handler: authRegisterHandler);
+    router.define(auth,
+        handler: authHandler, transitionType: TransitionType.fadeIn);
+    router.define(authLogin,
+        handler: authLoginHandler, transitionType: TransitionType.fadeIn);
+    router.define(authRegister,
+        handler: authRegisterHandler, transitionType: TransitionType.fadeIn);
 
-    router.define(home, handler: homeHandler);
-    router.define(homeDashboard, handler: homeDashboardHandler);
-    router.define(homeContacts, handler: homeContactsHandler);
-    router.define(contactDetail, handler: contactDetailHandler);
+    router.define(home,
+        handler: homeHandler, transitionType: TransitionType.fadeIn);
+    router.define(homeDashboard,
+        handler: homeDashboardHandler, transitionType: TransitionType.fadeIn);
+    router.define(homeContacts,
+        handler: homeContactsHandler, transitionType: TransitionType.fadeIn);
+    router.define(contactDetail,
+        handler: contactDetailHandler,
+        transitionType: TransitionType.inFromRight);
   }
 }
 
 var rootHandler = Handler(handlerFunc:
     (BuildContext context, Map<String, List<String>> params) async {
-  return BasePage();
+  var currentUser = await AuthService().getCurrentUser();
+  if (currentUser != null && currentUser.isNotEmpty) {
+    return Redirect(Routes.homeDashboard);
+  } else {
+    return Redirect(Routes.authLogin);
+  }
 });
 
 var authHandler = Handler(handlerFunc:
@@ -70,17 +85,13 @@ var authRegisterHandler = Handler(handlerFunc:
   );
 });
 
-var homeHandler = Handler(handlerFunc:
-    (BuildContext context, Map<String, List<String>> params) async {
-  return HomePage(
-    selectedTab: 0,
-  );
+var homeHandler = Handler(
+    handlerFunc: (BuildContext context, Map<String, List<String>> params) async{
+  return Redirect(Routes.homeDashboard);
 });
 
 var homeDashboardHandler = Handler(handlerFunc:
     (BuildContext context, Map<String, List<String>> params) async {
-  Application.router.navigateTo(context, Routes.homeDashboard,
-      clearStack: true, replace: true);
   return HomePage(
     selectedTab: 0,
   );

@@ -38,7 +38,9 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.initState();
     _authService = AuthService();
     _tabController = TabController(length: 2, vsync: this);
-    _tabController.index = currentIndex ?? widget.selectedTab;
+    currentIndex = widget.selectedTab;
+    _tabController.index = currentIndex;
+    print('Current Tab:$currentIndex');
   }
 
   @override
@@ -50,7 +52,8 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
           icon: Icon(Icons.exit_to_app),
           onPressed: () async {
             await _authService.logout();
-            Application.router.navigateTo(context, Routes.root,replace: true, clearStack: true);
+            Application.router.navigateTo(context, Routes.root,
+                replace: true, clearStack: true);
           },
         ),
         bottom: TabBar(
@@ -63,6 +66,15 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
             setState(() {
               currentIndex = selected;
             });
+            //Update Tab URL
+            Future.delayed(Duration.zero, () {
+              Application.router.navigateTo(
+                context,
+                selected == 0 ? Routes.homeDashboard : Routes.homeContacts,
+                replace: true,
+                clearStack: true,
+              );
+            });
           },
         ),
       ),
@@ -71,5 +83,12 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
         controller: _tabController,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    this._tabController.dispose();
+    this._tabController = null;
+    super.dispose();
   }
 }

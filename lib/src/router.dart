@@ -103,9 +103,16 @@ class FluroRouter {
     return FutureBuilder<Widget>(
         future: data,
         builder: (context, AsyncSnapshot<Widget> snapshot) {
-          return snapshot.hasData ? snapshot.data : Container();
+          return snapshot.hasData
+              ? snapshot.data
+              : Container(
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
         });
   }
+
 
   ///
   RouteMatch matchRoute(BuildContext buildContext, String path,
@@ -136,85 +143,139 @@ class FluroRouter {
       return RouteMatch(matchType: RouteMatchType.nonVisual);
     }
 
-    RouteCreator creator =
-        (RouteSettings routeSettings, Map<String, List<String>> parameters) {
-      bool isNativeTransition = (transition == TransitionType.native ||
-          transition == TransitionType.nativeModal);
-      if (isNativeTransition && !UniversalPlatform.isWeb) {
-        if (UniversalPlatform.isIOS) {
-          return CupertinoPageRoute<dynamic>(
-              settings: routeSettings,
-              fullscreenDialog: transition == TransitionType.nativeModal,
-              builder: (BuildContext context) {
-                return futureWidget(
-                    context, handler.handlerFunc(context, parameters));
-              });
-        } else {
-          return MaterialPageRoute<dynamic>(
-              settings: routeSettings,
-              fullscreenDialog: transition == TransitionType.nativeModal,
-              builder: (BuildContext context) {
-                return futureWidget(
-                    context, handler.handlerFunc(context, parameters));
-              });
-        }
-      } else if (transition == TransitionType.material ||
-          transition == TransitionType.materialFullScreenDialog) {
-        return MaterialPageRoute<dynamic>(
+    var handlerFunc = handler.handlerFunc(buildContext, parameters);
+    if (handlerFunc is Future<Redirect>) {
+      var routeTransitionsBuilder;
+      if (transition == TransitionType.custom) {
+        routeTransitionsBuilder = transitionsBuilder;
+      } else {
+        routeTransitionsBuilder = _standardTransitionsBuilder(transition);
+      }
+      return RouteMatch(
+        matchType: RouteMatchType.redirect,
+        route: WebMaterialPageRoute<dynamic>(
             settings: routeSettings,
+            transitionDuration: transitionDuration,
+            transitionsBuilder: routeTransitionsBuilder,
             fullscreenDialog:
                 transition == TransitionType.materialFullScreenDialog,
             builder: (BuildContext context) {
-              return futureWidget(
-                  context, handler.handlerFunc(context, parameters));
-            });
-      } else if (transition == TransitionType.cupertino ||
-          transition == TransitionType.cupertinoFullScreenDialog) {
+              return FutureBuilder<Redirect>(
+                  future: handlerFunc,
+                  builder: (context, AsyncSnapshot<Redirect> snapshot) {
+                    if (snapshot.hasData) {
+                      AppRouteMatch redirectMatch =
+                          _routeTree.matchRoute(snapshot.data.route);
+                      AppRoute redirectRoute = redirectMatch?.route;
+                      Handler redirectHandler = (redirectRoute != null
+                          ? redirectRoute.handler
+                          : notFoundHandler);
+                      var redirectHandlerFunc =
+                          redirectHandler.handlerFunc(buildContext, parameters);
+
+                      if (redirectHandlerFunc is Future<Widget>) {
+                        return futureWidget(context, redirectHandlerFunc);
+                      } else {
+                        return Container(
+                            child: Center(
+                          child: CircularProgressIndicator(),
+                        ));
+                      }
+                    } else {
+                      return Container(
+                          child: Center(
+                        child: CircularProgressIndicator(),
+                      ));
+                    }
+                  });
+            }),
+      );
+    } else if (handlerFunc is Future<Widget>) {
+      PageRoute createdRoute = createRoute(settingsToUse, parameters,
+          handlerFunc, transition, transitionDuration, transitionsBuilder);
+
+      return RouteMatch(
+        matchType: RouteMatchType.visual,
+        route: createdRoute,
+      );
+    }
+    return RouteMatch(
+        matchType: RouteMatchType.noMatch,
+        errorMessage: "No matching route was found");
+  }
+
+  Route<dynamic> createRoute(
+      RouteSettings routeSettings,
+      Map<String, List<String>> parameters,
+      Future<Widget> handlerFunc,
+      TransitionType transition,
+      Duration transitionDuration,
+      RouteTransitionsBuilder transitionsBuilder) {
+    bool isNativeTransition = (transition == TransitionType.native ||
+        transition == TransitionType.nativeModal);
+    if (isNativeTransition && !UniversalPlatform.isWeb) {
+      if (UniversalPlatform.isIOS) {
         return CupertinoPageRoute<dynamic>(
             settings: routeSettings,
-            fullscreenDialog:
-                transition == TransitionType.cupertinoFullScreenDialog,
+            fullscreenDialog: transition == TransitionType.nativeModal,
             builder: (BuildContext context) {
-              return futureWidget(
-                  context, handler.handlerFunc(context, parameters));
+              return futureWidget(context, handlerFunc);
             });
       } else {
-        var routeTransitionsBuilder;
-        if (transition == TransitionType.custom) {
-          routeTransitionsBuilder = transitionsBuilder;
-        } else {
-          routeTransitionsBuilder = _standardTransitionsBuilder(transition);
-        }
-        if (UniversalPlatform.isWeb) {
-          return MaterialPageRoute<dynamic>(
-              settings: routeSettings,
-              fullscreenDialog:
-                  transition == TransitionType.materialFullScreenDialog,
-              builder: (BuildContext context) {
-                return futureWidget(
-                    context, handler.handlerFunc(context, parameters));
-              });
-        } else {
-          return PageRouteBuilder<dynamic>(
+        return MaterialPageRoute<dynamic>(
             settings: routeSettings,
-            pageBuilder: (BuildContext context, Animation<double> animation,
-                Animation<double> secondaryAnimation) {
-              return futureWidget(
-                  context, handler.handlerFunc(context, parameters));
-            },
+            fullscreenDialog: transition == TransitionType.nativeModal,
+            builder: (BuildContext context) {
+              return futureWidget(context, handlerFunc);
+            });
+      }
+    } else if (transition == TransitionType.material ||
+        transition == TransitionType.materialFullScreenDialog) {
+      return MaterialPageRoute<dynamic>(
+          settings: routeSettings,
+          fullscreenDialog:
+              transition == TransitionType.materialFullScreenDialog,
+          builder: (BuildContext context) {
+            return futureWidget(context, handlerFunc);
+          });
+    } else if (transition == TransitionType.cupertino ||
+        transition == TransitionType.cupertinoFullScreenDialog) {
+      return CupertinoPageRoute<dynamic>(
+          settings: routeSettings,
+          fullscreenDialog:
+              transition == TransitionType.cupertinoFullScreenDialog,
+          builder: (BuildContext context) {
+            return futureWidget(context, handlerFunc);
+          });
+    } else {
+      var routeTransitionsBuilder;
+      if (transition == TransitionType.custom) {
+        routeTransitionsBuilder = transitionsBuilder;
+      } else {
+        routeTransitionsBuilder = _standardTransitionsBuilder(transition);
+      }
+      if (UniversalPlatform.isWeb) {
+        return WebMaterialPageRoute<dynamic>(
+            settings: routeSettings,
             transitionDuration: transitionDuration,
             transitionsBuilder: routeTransitionsBuilder,
-          );
-        }
+            fullscreenDialog:
+                transition == TransitionType.materialFullScreenDialog,
+            builder: (BuildContext context) {
+              return futureWidget(context, handlerFunc);
+            });
+      } else {
+        return PageRouteBuilder<dynamic>(
+          settings: routeSettings,
+          pageBuilder: (BuildContext context, Animation<double> animation,
+              Animation<double> secondaryAnimation) {
+            return futureWidget(context, handlerFunc);
+          },
+          transitionDuration: transitionDuration,
+          transitionsBuilder: routeTransitionsBuilder,
+        );
       }
-    };
-
-    PageRoute createdRoute = creator(settingsToUse, parameters);
-
-    return RouteMatch(
-      matchType: RouteMatchType.visual,
-      route: createdRoute,
-    );
+    }
   }
 
   RouteTransitionsBuilder _standardTransitionsBuilder(
@@ -271,12 +332,21 @@ class FluroRouter {
       return [rootMatch.route];
     } else {
       //Requires full processing
-      var segments = path.split('/');
+      var segments =
+          path.split('/').where((element) => element.isNotEmpty).toList();
+      print(
+          'Segments(' + segments.length.toString() + '):' + segments.join(','));
       List<Route<dynamic>> result = [];
       if (segments != null && segments.length > 0) {
         for (int i = 0; i < segments.length + 1; i++) {
-          var joined = segments.sublist(0, i).join('/');
-          result.add(matchRoute(null, joined.isEmpty ? '/' : joined).route);
+          var joined = '/' + segments.sublist(0, i).join('/');
+          var matched = matchRoute(null, joined.isEmpty ? '/' : joined);
+          if (matched.matchType != RouteMatchType.redirect) {
+            result.add(matched.route);
+            print('Adding:' + joined);
+          } else {
+            print('Not adding:' + joined);
+          }
         }
       }
       if (result.length > 0) {
