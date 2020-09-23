@@ -32,7 +32,7 @@ class Routes {
         handlerFunc: (BuildContext context, Map<String, List<String>> params) {
       print("ROUTE WAS NOT FOUND !!!");
     });
-    router.define(root,
+    router.defineAsync(root,
         handler: rootHandler, transitionType: TransitionType.fadeIn);
 
     router.define(auth,
@@ -54,58 +54,63 @@ class Routes {
   }
 }
 
-var rootHandler = Handler(handlerFunc:
-    (BuildContext context, Map<String, List<String>> params) async {
+// Generic Route Guard Function
+Future<bool> canActivate() async {
   var currentUser = await AuthService().getCurrentUser();
-  if (currentUser != null && currentUser.isNotEmpty) {
+  return (currentUser != null && currentUser.isNotEmpty);
+}
+
+var rootHandler = AsyncHandler(handlerFunc:
+    (BuildContext context, Map<String, List<String>> params) async {
+  if (await canActivate()) {
     return Redirect(Routes.homeDashboard);
   } else {
     return Redirect(Routes.authLogin);
   }
 });
 
-var authHandler = Handler(handlerFunc:
-    (BuildContext context, Map<String, List<String>> params) async {
+var authHandler = Handler(
+    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
   return AuthPage(
     isLogin: true,
   );
 });
 
-var authLoginHandler = Handler(handlerFunc:
-    (BuildContext context, Map<String, List<String>> params) async {
+var authLoginHandler = Handler(
+    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
   return AuthPage(
     isLogin: true,
   );
 });
 
-var authRegisterHandler = Handler(handlerFunc:
-    (BuildContext context, Map<String, List<String>> params) async {
+var authRegisterHandler = Handler(
+    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
   return AuthPage(
     isLogin: false,
   );
 });
 
 var homeHandler = Handler(
-    handlerFunc: (BuildContext context, Map<String, List<String>> params) async{
+    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
   return Redirect(Routes.homeDashboard);
 });
 
-var homeDashboardHandler = Handler(handlerFunc:
-    (BuildContext context, Map<String, List<String>> params) async {
+var homeDashboardHandler = Handler(
+    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
   return HomePage(
     selectedTab: 0,
   );
 });
 
-var homeContactsHandler = Handler(handlerFunc:
-    (BuildContext context, Map<String, List<String>> params) async {
+var homeContactsHandler = Handler(
+    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
   return HomePage(
     selectedTab: 1,
   );
 });
 
-var contactDetailHandler = Handler(handlerFunc:
-    (BuildContext context, Map<String, List<String>> params) async {
+var contactDetailHandler = Handler(
+    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
   return ContactDetailPage(
     contactId: params['contactId']?.first,
   );

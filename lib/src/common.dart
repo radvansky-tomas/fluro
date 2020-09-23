@@ -7,8 +7,11 @@
  * See LICENSE for distribution and usage details.
  */
 
+import 'package:fluro/src/transitions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+
+///Enums
 
 ///
 enum HandlerType {
@@ -17,6 +20,21 @@ enum HandlerType {
 }
 
 ///
+enum InitialRouteMatching {
+  full,
+  partial,
+}
+
+enum RouteMatchType { visual, nonVisual, noMatch, redirect }
+
+///
+class AsyncHandler {
+  AsyncHandler({this.type = HandlerType.route, this.handlerFunc});
+
+  final HandlerType type;
+  final AsyncHandlerFunc handlerFunc;
+}
+
 class Handler {
   Handler({this.type = HandlerType.route, this.handlerFunc});
 
@@ -24,49 +42,44 @@ class Handler {
   final HandlerFunc handlerFunc;
 }
 
-///
+/// Desired [route] to redirect
 class Redirect {
-  final String route;
   Redirect(this.route);
+
+  final String route;
 }
 
 ///
 typedef Route<T> RouteCreator<T>(
     RouteSettings route, Map<String, List<String>> parameters);
 
-///
-typedef Future<dynamic> HandlerFunc(
+/// Returns dynamic [Future] which contains either [Widget] or [Redirect]
+typedef Future<dynamic> AsyncHandlerFunc(
+    BuildContext context, Map<String, List<String>> parameters);
+
+/// Returns either [Widget] or [Redirect]
+typedef dynamic HandlerFunc(
     BuildContext context, Map<String, List<String>> parameters);
 
 ///
 class AppRoute {
-  String route;
-  Handler handler;
-  TransitionType transitionType;
+  AppRoute(this.route, this.handler, {this.transitionType, this.parameters});
 
-  AppRoute(this.route, this.handler, {this.transitionType});
-}
+  final String route;
 
-enum TransitionType {
-  native,
-  nativeModal,
-  inFromLeft,
-  inFromRight,
-  inFromTop,
-  inFromBottom,
-  fadeIn,
-  custom, // if using custom then you must also provide a transition
-  material,
-  materialFullScreenDialog,
-  cupertino,
-  cupertinoFullScreenDialog,
-}
+  /// Can be [Handler] or [AsyncHandler]
+  final dynamic handler;
+  final TransitionType transitionType;
+  final Map<String, List<String>> parameters;
 
-enum RouteMatchType {
-  visual,
-  nonVisual,
-  noMatch,
-  redirect
+  dynamic callHandler(BuildContext context) {
+    print(handler);
+    if (handler is Handler) {
+      return handler.handlerFunc(context, parameters);
+    } else if (handler is AsyncHandler) {
+      return handler.handlerFunc(context, parameters);
+    }
+  }
 }
 
 ///
@@ -76,7 +89,7 @@ class RouteMatch {
       this.route,
       this.errorMessage = "Unable to match route. Please check the logs."});
 
-  final Route<dynamic> route;
+  final PageRoute route;
   RouteMatchType matchType;
   final String errorMessage;
 }
@@ -95,23 +108,26 @@ class RouteNotFoundException implements Exception {
 
 class WebMaterialPageRoute<T> extends MaterialPageRoute<T> {
   final Duration transitionDuration;
-  final RouteTransitionsBuilder transitionsBuilder;
-  WebMaterialPageRoute({
-    @required WidgetBuilder builder,
-    RouteSettings settings,
-    bool maintainState = true,
-    bool fullscreenDialog = false,
-    this.transitionDuration = const Duration(milliseconds: 250),
-    this.transitionsBuilder
-  }) : super(
-      builder: builder,
-      maintainState: maintainState,
-      settings: settings,
-      fullscreenDialog: fullscreenDialog);
+  //final RouteTransitionsBuilder transitionsBuilder;
 
-  @override
-  Widget buildTransitions(BuildContext context, Animation<double> animation,
-      Animation<double> secondaryAnimation, Widget child) {
-    return transitionsBuilder(context,animation,secondaryAnimation,child) ?? child;
-  }
+  WebMaterialPageRoute(
+      {@required WidgetBuilder builder,
+      RouteSettings settings,
+      bool maintainState = true,
+      bool fullscreenDialog = false,
+      this.transitionDuration = const Duration(milliseconds: 250),
+      //this.transitionsBuilder
+      })
+      : super(
+            builder: builder,
+            maintainState: maintainState,
+            settings: settings,
+            fullscreenDialog: fullscreenDialog);
+
+  // @override
+  // Widget buildTransitions(BuildContext context, Animation<double> animation,
+  //     Animation<double> secondaryAnimation, Widget child) {
+  //   return transitionsBuilder(context, animation, secondaryAnimation, child) ??
+  //       child;
+  // }
 }

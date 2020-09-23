@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:fluro/fluro.dart';
 import 'package:fluro/src/common.dart';
+import 'package:fluro/src/transitions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -18,9 +19,9 @@ import 'package:universal_platform/universal_platform.dart';
 
 class FluroRouter {
   static final appRouter = FluroRouter();
-  final RouteMatchType requiredInitialMatchType;
+  final InitialRouteMatching requiredInitialRouteMatching;
 
-  FluroRouter({this.requiredInitialMatchType = RouteMatchType.visual});
+  FluroRouter({this.requiredInitialRouteMatching = InitialRouteMatching.full});
 
   /// The tree structure that stores the defined routes
   final RouteTree _routeTree = RouteTree();
@@ -28,31 +29,330 @@ class FluroRouter {
   /// Generic handler for when a route has not been defined
   Handler notFoundHandler;
 
-  /// Creates a [PageRoute] definition for the passed [RouteHandler]. You can optionally provide a default transition type.
+  /// Internal helper method to return [notFound] page
+  Route<Null> _notFoundRoute(BuildContext context, String path) {
+    return MaterialPageRoute<Null>(
+        settings: RouteSettings(name: path),
+        builder: (BuildContext context) {
+          return notFoundHandler.handlerFunc(context, null);
+        });
+  }
+
+  /// Generic handler for when a route is being constructed (async)
+  Handler loadingHandler;
+
+  /// Internal helper method to return [loading] page
+  Route<Null> _loadingRoute(BuildContext context, String path) {
+    return MaterialPageRoute<Null>(
+        settings: RouteSettings(name: path),
+        builder: (BuildContext context) {
+          return loadingHandler != null && loadingHandler.handlerFunc != null
+              ? loadingHandler.handlerFunc(context, null)
+              : Container(
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+        });
+  }
+
+  /// Internal helper method to return widget defined by [AsyncHandler]
+  Widget _futureWidget(BuildContext context, dynamic widgetData) {
+    print('_futureWidget - ' + widgetData.toString());
+    if (widgetData is Future<Widget>) {
+      return FutureBuilder<Widget>(
+          future: widgetData,
+          builder: (context, AsyncSnapshot<Widget> snapshot) {
+            return snapshot.hasData
+                ? snapshot.data
+                : loadingHandler != null && loadingHandler.handlerFunc != null
+                    ? loadingHandler.handlerFunc(context, null)
+                    : Container(
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+          });
+    } else if (widgetData is Widget) {
+      return widgetData;
+    } else {
+      return Container(
+        child: Center(
+          child: Text('Not Found'),
+        ),
+      );
+    }
+  }
+
+  /// Creates a [AppRoute] definition for the passed [Handler]. You can optionally provide a default transition type.
   void define(String routePath,
       {@required Handler handler, TransitionType transitionType}) {
+    print('Define - ' + routePath);
     _routeTree.addRoute(
       AppRoute(routePath, handler, transitionType: transitionType),
     );
   }
 
-  /// Finds a defined [AppRoute] for the path value. If no [AppRoute] definition was found
-  /// then function will return null.
-  AppRouteMatch match(String path) {
-    return _routeTree.matchRoute(path);
+  /// Creates a [AppRoute] definition for the passed [AsyncHandler]. You can optionally provide a default transition type.
+  void defineAsync(String routePath,
+      {@required AsyncHandler handler, TransitionType transitionType}) {
+    print('Define Async - ' + routePath);
+    _routeTree.addRoute(
+      AppRoute(routePath, handler, transitionType: transitionType),
+    );
   }
 
+  AppRoute getAppRoute(
+      {BuildContext buildContext, String path, TransitionType transitionType}) {
+    print('getAppRoute - ' + path);
+    AppRouteMatch match = _routeTree.matchRoute(path);
+    AppRoute route = match?.route;
+    var handler = (route != null ? route.handler : notFoundHandler);
+    var transition = transitionType;
+    if (transitionType == null) {
+      transition = route != null ? route.transitionType : TransitionType.native;
+    }
+    var parameters = match?.parameters ?? <String, List<String>>{};
+    //return handler.handlerFunc(buildContext, redirectParameters);
+    return AppRoute(path, handler,
+        transitionType: transition, parameters: parameters);
+  }
+
+  /// Logic to process names [path] to [RouteMatch] and add desired parameters such as [routeSettings], [transitionType], [transitionDuration], [transitionsBuilder]
+  RouteMatch _matchRoute(BuildContext buildContext, String path,
+      {RouteSettings routeSettings,
+      TransitionType transitionType,
+      Duration transitionDuration = const Duration(milliseconds: 250),
+      RouteTransitionsBuilder transitionsBuilder}) {
+    print('_matchRoute - ' + path);
+    RouteSettings settingsToUse = routeSettings;
+    if (routeSettings == null) {
+      settingsToUse = RouteSettings(name: path);
+    }
+
+    AppRoute appRoute = getAppRoute(
+        buildContext: buildContext, path: path, transitionType: transitionType);
+
+    if (appRoute == null && notFoundHandler == null) {
+      return RouteMatch(
+          matchType: RouteMatchType.noMatch,
+          errorMessage: "No matching route was found");
+    }
+
+    if (appRoute.handler is Handler || appRoute.handler is AsyncHandler) {
+      print('App route is HANDLER');
+
+      /// Process non-visual routes -> functions
+      if (appRoute.handler.type == HandlerType.function) {
+        print('App route is function');
+        appRoute.callHandler(buildContext);
+        return RouteMatch(matchType: RouteMatchType.nonVisual);
+      }
+
+      var handlerFunc = appRoute.callHandler(buildContext);
+      if (handlerFunc is Redirect) {
+        print('handlerFunc is Redirect');
+
+        /// Recursive function
+        return _matchRoute(buildContext, handlerFunc.route,
+            routeSettings: settingsToUse,
+            transitionType: appRoute.transitionType,
+            transitionDuration: transitionDuration,
+            transitionsBuilder: transitionsBuilder);
+      } else if (handlerFunc is Future<Redirect>) {
+        print('handlerFunc is Future Redirect' + handlerFunc.toString());
+        return RouteMatch(
+          matchType: RouteMatchType.redirect,
+          route: WebMaterialPageRoute<dynamic>(
+              settings: settingsToUse,
+              builder: (BuildContext context) {
+                print('WebMaterialPageRoute Builder');
+                return FutureBuilder<Redirect>(
+                  future: handlerFunc,
+                  builder: (context, snapshot) {
+                    print('WebMaterialPageRoute Future Builder');
+                    if (snapshot.hasData) {
+                      var newMatch = _matchRoute(context, snapshot.data.route,
+                          routeSettings: settingsToUse,
+                          transitionType: appRoute.transitionType,
+                          transitionDuration: transitionDuration,
+                          transitionsBuilder: transitionsBuilder);
+                      //TODO check how to execute animations here
+                      return newMatch.route.buildPage(context, null, null);
+                    }
+                    return loadingHandler.handlerFunc(context, null);
+                  },
+                );
+              }),
+        );
+      } else if (handlerFunc is Widget || handlerFunc is Future<Widget>) {
+        print('handlerFunc is Widget or Future');
+        PageRoute createdRoute = _createPageRoute(appRoute, settingsToUse,
+            handlerFunc, transitionDuration, transitionsBuilder);
+
+        return RouteMatch(
+          matchType: RouteMatchType.visual,
+          route: createdRoute,
+        );
+      }
+    }
+
+    print('No matching route was found');
+    return RouteMatch(
+        matchType: RouteMatchType.noMatch,
+        errorMessage: "No matching route was found");
+  }
+
+  Route<dynamic> _createPageRoute(
+      AppRoute route,
+      RouteSettings routeSettings,
+      dynamic handlerFunc,
+      Duration transitionDuration,
+      RouteTransitionsBuilder transitionsBuilder) {
+    print(_createPageRoute);
+    print(handlerFunc);
+    bool isNativeTransition = (route.transitionType == TransitionType.native ||
+        route.transitionType == TransitionType.nativeModal);
+    if (isNativeTransition && !UniversalPlatform.isWeb) {
+      if (UniversalPlatform.isIOS) {
+        return CupertinoPageRoute<dynamic>(
+            settings: routeSettings,
+            fullscreenDialog:
+                route.transitionType == TransitionType.nativeModal,
+            builder: (BuildContext context) {
+              return _futureWidget(context, handlerFunc);
+            });
+      } else {
+        return MaterialPageRoute<dynamic>(
+            settings: routeSettings,
+            fullscreenDialog:
+                route.transitionType == TransitionType.nativeModal,
+            builder: (BuildContext context) {
+              return _futureWidget(context, handlerFunc);
+            });
+      }
+    } else if (route.transitionType == TransitionType.material ||
+        route.transitionType == TransitionType.materialFullScreenDialog) {
+      return MaterialPageRoute<dynamic>(
+          settings: routeSettings,
+          fullscreenDialog:
+              route.transitionType == TransitionType.materialFullScreenDialog,
+          builder: (BuildContext context) {
+            return _futureWidget(context, handlerFunc);
+          });
+    } else if (route.transitionType == TransitionType.cupertino ||
+        route.transitionType == TransitionType.cupertinoFullScreenDialog) {
+      return CupertinoPageRoute<dynamic>(
+          settings: routeSettings,
+          fullscreenDialog:
+              route.transitionType == TransitionType.cupertinoFullScreenDialog,
+          builder: (BuildContext context) {
+            return _futureWidget(context, handlerFunc);
+          });
+    } else {
+      var routeTransitionsBuilder;
+      if (route.transitionType == TransitionType.custom) {
+        routeTransitionsBuilder = transitionsBuilder;
+      } else {
+        routeTransitionsBuilder =
+            FluroTransitions.buildTransitions(route.transitionType);
+      }
+      if (UniversalPlatform.isWeb) {
+        return WebMaterialPageRoute<dynamic>(
+            settings: routeSettings,
+            transitionDuration: transitionDuration,
+            fullscreenDialog:
+                route.transitionType == TransitionType.materialFullScreenDialog,
+            builder: (BuildContext context) {
+              return _futureWidget(context, handlerFunc);
+            });
+      } else {
+        return PageRouteBuilder<dynamic>(
+          settings: routeSettings,
+          pageBuilder: (BuildContext context, Animation<double> animation,
+              Animation<double> secondaryAnimation) {
+            return _futureWidget(context, handlerFunc);
+          },
+          transitionDuration: transitionDuration,
+          transitionsBuilder: routeTransitionsBuilder,
+        );
+      }
+    }
+  }
+
+  /// Route generation method. This function can be used as a way to create routes on-the-fly
+  /// if any defined handler is found. It can also be used with the [MaterialApp.onGenerateRoute]
+  /// property as callback to create routes that can be used with the [Navigator] class.
+  Route<dynamic> generator(RouteSettings routeSettings) {
+    print('generator');
+    RouteMatch match =
+        _matchRoute(null, routeSettings.name, routeSettings: routeSettings);
+    return match.route;
+  }
+
+  /// InitialRoute Generator method. This function can be used as a way to create initial routes on
+  /// hard page refresh or deep links. Its dependant on [requiredInitialRouteMatching] which is by default
+  /// set to [InitialRouteMatching.full]. In that case full PATH needs to match to return just its result.
+  /// Otherwise [path] is parsed into multiple segments divided by '/' to provide partial routes as history.
+  List<Route<dynamic>> initialGenerator(String path) {
+    RouteMatch rootMatch = _matchRoute(null, '/', routeSettings: null);
+    print('inital generator');
+    if (this.requiredInitialRouteMatching == InitialRouteMatching.full) {
+      RouteMatch fullMatch = _matchRoute(null, path, routeSettings: null);
+      print('FullMatch');
+      print(fullMatch);
+
+      /// Returns full match if its [RouteMatchType.visual] or [RouteMatchType.redirect] otherwise [rootMatch]
+      return fullMatch.route != null &&
+                  fullMatch.matchType == RouteMatchType.visual ||
+              fullMatch.matchType == RouteMatchType.redirect
+          ? [fullMatch.route]
+          : [rootMatch.route];
+    } else {
+      /// Requires full processing of partial matches, do not include empty routes
+      var segments =
+          path.split('/').where((element) => element.isNotEmpty).toList();
+
+      List<Route<dynamic>> result = [];
+
+      if (segments != null && segments.length > 0) {
+        for (int i = 0; i < segments.length + 1; i++) {
+          /// Now reconstruct paths from start
+          var joined = '/' + segments.sublist(0, i).join('/');
+          var matched = _matchRoute(null, joined.isEmpty ? '/' : joined);
+          if (matched.matchType != RouteMatchType.redirect) {
+            result.add(matched.route);
+            print('Adding:' + joined);
+          } else {
+            print('Not adding:' + joined);
+          }
+        }
+      }
+
+      if (result.length > 0) {
+        print('Returning Initial result');
+        print(result);
+        return result;
+      } else {
+        /// Requires partial match, but nothing found -> [rootMatch]
+        print('Returning rootMatch');
+        return [rootMatch.route];
+      }
+    }
+  }
+
+  /// Helper function to return [result] from pop() method
   pop<T extends Object>(BuildContext context, [T result]) =>
       Navigator.pop(context, result);
 
-  ///
+  /// Use this method instead of generic [Navigator.push]
   Future navigateTo(BuildContext context, String path,
       {bool replace = false,
       bool clearStack = false,
       TransitionType transition,
       Duration transitionDuration = const Duration(milliseconds: 250),
       RouteTransitionsBuilder transitionBuilder}) {
-    RouteMatch routeMatch = matchRoute(context, path,
+    RouteMatch routeMatch = _matchRoute(context, path,
         transitionType: transition,
         transitionsBuilder: transitionBuilder,
         transitionDuration: transitionDuration);
@@ -85,280 +385,13 @@ class FluroRouter {
     return future;
   }
 
-  ///
-  Route<Null> _notFoundRoute(BuildContext context, String path) {
-    RouteCreator<Null> creator =
-        (RouteSettings routeSettings, Map<String, List<String>> parameters) {
-      return MaterialPageRoute<Null>(
-          settings: routeSettings,
-          builder: (BuildContext context) {
-            return futureWidget(
-                context, notFoundHandler.handlerFunc(context, parameters));
-          });
-    };
-    return creator(RouteSettings(name: path), null);
+  /// Finds a defined [AppRoute] for the path value. If no [AppRoute] definition was found
+  /// then function will return null.
+  AppRouteMatch match(String path) {
+    return _routeTree.matchRoute(path);
   }
 
-  Widget futureWidget(BuildContext context, Future<Widget> data) {
-    return FutureBuilder<Widget>(
-        future: data,
-        builder: (context, AsyncSnapshot<Widget> snapshot) {
-          return snapshot.hasData
-              ? snapshot.data
-              : Container(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-        });
-  }
-
-
-  ///
-  RouteMatch matchRoute(BuildContext buildContext, String path,
-      {RouteSettings routeSettings,
-      TransitionType transitionType,
-      Duration transitionDuration = const Duration(milliseconds: 250),
-      RouteTransitionsBuilder transitionsBuilder}) {
-    RouteSettings settingsToUse = routeSettings;
-    if (routeSettings == null) {
-      settingsToUse = RouteSettings(name: path);
-    }
-    AppRouteMatch match = _routeTree.matchRoute(path);
-    AppRoute route = match?.route;
-    Handler handler = (route != null ? route.handler : notFoundHandler);
-    var transition = transitionType;
-    if (transitionType == null) {
-      transition = route != null ? route.transitionType : TransitionType.native;
-    }
-    if (route == null && notFoundHandler == null) {
-      return RouteMatch(
-          matchType: RouteMatchType.noMatch,
-          errorMessage: "No matching route was found");
-    }
-    Map<String, List<String>> parameters =
-        match?.parameters ?? <String, List<String>>{};
-    if (handler.type == HandlerType.function) {
-      handler.handlerFunc(buildContext, parameters);
-      return RouteMatch(matchType: RouteMatchType.nonVisual);
-    }
-
-    var handlerFunc = handler.handlerFunc(buildContext, parameters);
-    if (handlerFunc is Future<Redirect>) {
-      var routeTransitionsBuilder;
-      if (transition == TransitionType.custom) {
-        routeTransitionsBuilder = transitionsBuilder;
-      } else {
-        routeTransitionsBuilder = _standardTransitionsBuilder(transition);
-      }
-      return RouteMatch(
-        matchType: RouteMatchType.redirect,
-        route: WebMaterialPageRoute<dynamic>(
-            settings: routeSettings,
-            transitionDuration: transitionDuration,
-            transitionsBuilder: routeTransitionsBuilder,
-            fullscreenDialog:
-                transition == TransitionType.materialFullScreenDialog,
-            builder: (BuildContext context) {
-              return FutureBuilder<Redirect>(
-                  future: handlerFunc,
-                  builder: (context, AsyncSnapshot<Redirect> snapshot) {
-                    if (snapshot.hasData) {
-                      AppRouteMatch redirectMatch =
-                          _routeTree.matchRoute(snapshot.data.route);
-                      AppRoute redirectRoute = redirectMatch?.route;
-                      Handler redirectHandler = (redirectRoute != null
-                          ? redirectRoute.handler
-                          : notFoundHandler);
-                      var redirectHandlerFunc =
-                          redirectHandler.handlerFunc(buildContext, parameters);
-
-                      if (redirectHandlerFunc is Future<Widget>) {
-                        return futureWidget(context, redirectHandlerFunc);
-                      } else {
-                        return Container(
-                            child: Center(
-                          child: CircularProgressIndicator(),
-                        ));
-                      }
-                    } else {
-                      return Container(
-                          child: Center(
-                        child: CircularProgressIndicator(),
-                      ));
-                    }
-                  });
-            }),
-      );
-    } else if (handlerFunc is Future<Widget>) {
-      PageRoute createdRoute = createRoute(settingsToUse, parameters,
-          handlerFunc, transition, transitionDuration, transitionsBuilder);
-
-      return RouteMatch(
-        matchType: RouteMatchType.visual,
-        route: createdRoute,
-      );
-    }
-    return RouteMatch(
-        matchType: RouteMatchType.noMatch,
-        errorMessage: "No matching route was found");
-  }
-
-  Route<dynamic> createRoute(
-      RouteSettings routeSettings,
-      Map<String, List<String>> parameters,
-      Future<Widget> handlerFunc,
-      TransitionType transition,
-      Duration transitionDuration,
-      RouteTransitionsBuilder transitionsBuilder) {
-    bool isNativeTransition = (transition == TransitionType.native ||
-        transition == TransitionType.nativeModal);
-    if (isNativeTransition && !UniversalPlatform.isWeb) {
-      if (UniversalPlatform.isIOS) {
-        return CupertinoPageRoute<dynamic>(
-            settings: routeSettings,
-            fullscreenDialog: transition == TransitionType.nativeModal,
-            builder: (BuildContext context) {
-              return futureWidget(context, handlerFunc);
-            });
-      } else {
-        return MaterialPageRoute<dynamic>(
-            settings: routeSettings,
-            fullscreenDialog: transition == TransitionType.nativeModal,
-            builder: (BuildContext context) {
-              return futureWidget(context, handlerFunc);
-            });
-      }
-    } else if (transition == TransitionType.material ||
-        transition == TransitionType.materialFullScreenDialog) {
-      return MaterialPageRoute<dynamic>(
-          settings: routeSettings,
-          fullscreenDialog:
-              transition == TransitionType.materialFullScreenDialog,
-          builder: (BuildContext context) {
-            return futureWidget(context, handlerFunc);
-          });
-    } else if (transition == TransitionType.cupertino ||
-        transition == TransitionType.cupertinoFullScreenDialog) {
-      return CupertinoPageRoute<dynamic>(
-          settings: routeSettings,
-          fullscreenDialog:
-              transition == TransitionType.cupertinoFullScreenDialog,
-          builder: (BuildContext context) {
-            return futureWidget(context, handlerFunc);
-          });
-    } else {
-      var routeTransitionsBuilder;
-      if (transition == TransitionType.custom) {
-        routeTransitionsBuilder = transitionsBuilder;
-      } else {
-        routeTransitionsBuilder = _standardTransitionsBuilder(transition);
-      }
-      if (UniversalPlatform.isWeb) {
-        return WebMaterialPageRoute<dynamic>(
-            settings: routeSettings,
-            transitionDuration: transitionDuration,
-            transitionsBuilder: routeTransitionsBuilder,
-            fullscreenDialog:
-                transition == TransitionType.materialFullScreenDialog,
-            builder: (BuildContext context) {
-              return futureWidget(context, handlerFunc);
-            });
-      } else {
-        return PageRouteBuilder<dynamic>(
-          settings: routeSettings,
-          pageBuilder: (BuildContext context, Animation<double> animation,
-              Animation<double> secondaryAnimation) {
-            return futureWidget(context, handlerFunc);
-          },
-          transitionDuration: transitionDuration,
-          transitionsBuilder: routeTransitionsBuilder,
-        );
-      }
-    }
-  }
-
-  RouteTransitionsBuilder _standardTransitionsBuilder(
-      TransitionType transitionType) {
-    return (BuildContext context, Animation<double> animation,
-        Animation<double> secondaryAnimation, Widget child) {
-      if (transitionType == TransitionType.fadeIn) {
-        return FadeTransition(opacity: animation, child: child);
-      } else {
-        const Offset topLeft = const Offset(0.0, 0.0);
-        const Offset topRight = const Offset(1.0, 0.0);
-        const Offset bottomLeft = const Offset(0.0, 1.0);
-        Offset startOffset = bottomLeft;
-        Offset endOffset = topLeft;
-        if (transitionType == TransitionType.inFromLeft) {
-          startOffset = const Offset(-1.0, 0.0);
-          endOffset = topLeft;
-        } else if (transitionType == TransitionType.inFromRight) {
-          startOffset = topRight;
-          endOffset = topLeft;
-        } else if (transitionType == TransitionType.inFromTop) {
-          startOffset = const Offset(0.0, -1.0);
-          endOffset = const Offset(0.0, 1.0);
-        }
-
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: startOffset,
-            end: endOffset,
-          ).animate(animation),
-          child: child,
-        );
-      }
-    };
-  }
-
-  /// Route generation method. This function can be used as a way to create routes on-the-fly
-  /// if any defined handler is found. It can also be used with the [MaterialApp.onGenerateRoute]
-  /// property as callback to create routes that can be used with the [Navigator] class.
-  Route<dynamic> generator(RouteSettings routeSettings) {
-    RouteMatch match =
-        matchRoute(null, routeSettings.name, routeSettings: routeSettings);
-    return match.route;
-  }
-
-  /// InitialRoute Generator method. This function can be used as a way to create initial routes on
-  /// hard page refresh or deep links. Its dependant on [requiredInitialMatchType] which is by default
-  /// set to [RouteMatchType.visual]. In that case full PATH needs to match to return just its result.
-  /// Otherwise [path] is parsed into multiple segments divided by '/' to provide partial routes as history.
-  List<Route<dynamic>> initialGenerator(String path) {
-    RouteMatch rootMatch = matchRoute(null, '/', routeSettings: null);
-    if (this.requiredInitialMatchType == RouteMatchType.visual) {
-      //Requires full match but not found, redirect to initial page
-      return [rootMatch.route];
-    } else {
-      //Requires full processing
-      var segments =
-          path.split('/').where((element) => element.isNotEmpty).toList();
-      print(
-          'Segments(' + segments.length.toString() + '):' + segments.join(','));
-      List<Route<dynamic>> result = [];
-      if (segments != null && segments.length > 0) {
-        for (int i = 0; i < segments.length + 1; i++) {
-          var joined = '/' + segments.sublist(0, i).join('/');
-          var matched = matchRoute(null, joined.isEmpty ? '/' : joined);
-          if (matched.matchType != RouteMatchType.redirect) {
-            result.add(matched.route);
-            print('Adding:' + joined);
-          } else {
-            print('Not adding:' + joined);
-          }
-        }
-      }
-      if (result.length > 0) {
-        return result;
-      } else {
-        //Requires full processing but not found, redirect to initial page
-        return [rootMatch.route];
-      }
-    }
-  }
-
-  /// Prints the route tree so you can analyze it.
+  /// DEBUG method which prints the route tree so you can analyze it.
   void printTree() {
     _routeTree.printTree();
   }

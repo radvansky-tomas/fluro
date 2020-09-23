@@ -1,3 +1,18 @@
+# 2.0.0
+- Breaking Change
+
+# 1.7.0
+- Rename Router -> FluroRouter
+- Migrate Android Example to v2
+- Temp disable Android Deep links
+- Add web support using Universal Platform
+- Add Transition inFromTop
+- Add result to pop()
+- Add support for initialRoutes
+- Back button handling - WEB
+- Add async support for Route definitions
+- Add async redirects
+
 # 1.6.3
 - Remove upper bounds on Flutter SDK checks because Flutter releases are a ridiculous mess
 
