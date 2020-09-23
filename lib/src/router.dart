@@ -254,6 +254,7 @@ class FluroRouter {
         return WebMaterialPageRoute<dynamic>(
             settings: routeSettings,
             transitionDuration: transitionDuration,
+            transitionsBuilder: routeTransitionsBuilder,
             fullscreenDialog:
                 route.transitionType == TransitionType.materialFullScreenDialog,
             builder: (BuildContext context) {

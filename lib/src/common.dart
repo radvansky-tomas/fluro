@@ -108,26 +108,28 @@ class RouteNotFoundException implements Exception {
 
 class WebMaterialPageRoute<T> extends MaterialPageRoute<T> {
   final Duration transitionDuration;
-  //final RouteTransitionsBuilder transitionsBuilder;
+  final RouteTransitionsBuilder transitionsBuilder;
 
-  WebMaterialPageRoute(
-      {@required WidgetBuilder builder,
-      RouteSettings settings,
-      bool maintainState = true,
-      bool fullscreenDialog = false,
-      this.transitionDuration = const Duration(milliseconds: 250),
-      //this.transitionsBuilder
-      })
-      : super(
+  WebMaterialPageRoute({
+    @required WidgetBuilder builder,
+    RouteSettings settings,
+    bool maintainState = true,
+    bool fullscreenDialog = false,
+    this.transitionsBuilder,
+    this.transitionDuration = const Duration(milliseconds: 250),
+    //this.transitionsBuilder
+  }) : super(
             builder: builder,
             maintainState: maintainState,
             settings: settings,
             fullscreenDialog: fullscreenDialog);
 
-// @override
-  // Widget buildTransitions(BuildContext context, Animation<double> animation,
-  //     Animation<double> secondaryAnimation, Widget child) {
-  //   return transitionsBuilder(context, animation, secondaryAnimation, child) ??
-  //       child;
-  // }
+  @override
+  Widget buildTransitions(BuildContext context, Animation<double> animation,
+      Animation<double> secondaryAnimation, Widget child) {
+    return transitionsBuilder != null
+        ? transitionsBuilder(context, animation, secondaryAnimation, child) ??
+            child
+        : child;
+  }
 }
