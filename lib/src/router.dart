@@ -8,6 +8,7 @@
  */
 
 import 'dart:async';
+import 'package:universal_html/html.dart';
 
 import 'package:fluro/fluro.dart';
 import 'package:fluro/src/common.dart';
@@ -19,9 +20,12 @@ import 'package:universal_platform/universal_platform.dart';
 
 class FluroRouter {
   static final appRouter = FluroRouter();
-  final InitialRouteMatching requiredInitialRouteMatching;
+  final InitialRouteMatching initialRouteMatching;
+  final bool useHash;
 
-  FluroRouter({this.requiredInitialRouteMatching = InitialRouteMatching.full});
+  FluroRouter(
+      {this.initialRouteMatching = InitialRouteMatching.full,
+      this.useHash = true});
 
   /// The tree structure that stores the defined routes
   final RouteTree _routeTree = RouteTree();
@@ -38,23 +42,15 @@ class FluroRouter {
         });
   }
 
-  /// Generic handler for when a route is being constructed (async)
-  Handler loadingHandler;
+  /// Widget being displayed while async routes are processed
+  Widget loadingWidget;
 
-  /// Internal helper method to return [loading] page
-  Route<Null> _loadingRoute(BuildContext context, String path) {
-    return MaterialPageRoute<Null>(
-        settings: RouteSettings(name: path),
-        builder: (BuildContext context) {
-          return loadingHandler != null && loadingHandler.handlerFunc != null
-              ? loadingHandler.handlerFunc(context, null)
-              : Container(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-        });
-  }
+  /// In case of loading handler is missing, display simple loading view
+  Widget _loadingWidgetFallback = Container(
+    child: Center(
+      child: CircularProgressIndicator(),
+    ),
+  );
 
   /// Internal helper method to return widget defined by [AsyncHandler]
   Widget _futureWidget(BuildContext context, dynamic widgetData) {
@@ -65,13 +61,7 @@ class FluroRouter {
           builder: (context, AsyncSnapshot<Widget> snapshot) {
             return snapshot.hasData
                 ? snapshot.data
-                : loadingHandler != null && loadingHandler.handlerFunc != null
-                    ? loadingHandler.handlerFunc(context, null)
-                    : Container(
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
+                : loadingWidget ?? _loadingWidgetFallback;
           });
     } else if (widgetData is Widget) {
       return widgetData;
@@ -155,7 +145,7 @@ class FluroRouter {
 
         /// Recursive function
         return _matchRoute(buildContext, handlerFunc.route,
-            routeSettings: settingsToUse,
+            routeSettings: RouteSettings(name: handlerFunc.route),
             transitionType: appRoute.transitionType,
             transitionDuration: transitionDuration,
             transitionsBuilder: transitionsBuilder);
@@ -164,6 +154,7 @@ class FluroRouter {
         return RouteMatch(
           matchType: RouteMatchType.redirect,
           route: WebMaterialPageRoute<dynamic>(
+              //TODO: This needs to update async, that's why using [window.history.pushState]
               settings: settingsToUse,
               builder: (BuildContext context) {
                 print('WebMaterialPageRoute Builder');
@@ -172,6 +163,8 @@ class FluroRouter {
                   builder: (context, snapshot) {
                     print('WebMaterialPageRoute Future Builder');
                     if (snapshot.hasData) {
+                      window.history.pushState(null, snapshot.data.route,
+                          (this.useHash ? '#' : '') + snapshot.data.route);
                       var newMatch = _matchRoute(context, snapshot.data.route,
                           routeSettings: settingsToUse,
                           transitionType: appRoute.transitionType,
@@ -180,7 +173,7 @@ class FluroRouter {
                       //TODO check how to execute animations here
                       return newMatch.route.buildPage(context, null, null);
                     }
-                    return loadingHandler.handlerFunc(context, null);
+                    return loadingWidget ?? _loadingWidgetFallback;
                   },
                 );
               }),
@@ -297,7 +290,7 @@ class FluroRouter {
   List<Route<dynamic>> initialGenerator(String path) {
     RouteMatch rootMatch = _matchRoute(null, '/', routeSettings: null);
     print('inital generator');
-    if (this.requiredInitialRouteMatching == InitialRouteMatching.full) {
+    if (this.initialRouteMatching == InitialRouteMatching.full) {
       RouteMatch fullMatch = _matchRoute(null, path, routeSettings: null);
       print('FullMatch');
       print(fullMatch);

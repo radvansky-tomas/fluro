@@ -22,7 +22,7 @@ class AppComponent extends StatefulWidget {
 
 class AppComponentState extends State<AppComponent> {
   AppComponentState() {
-    final router = FluroRouter(requiredInitialRouteMatching: InitialRouteMatching.partial);
+    final router = FluroRouter(initialRouteMatching: InitialRouteMatching.partial);
     Routes.configureRoutes(router);
     Application.router = router;
   }

@@ -57,6 +57,7 @@ class Routes {
 // Generic Route Guard Function
 Future<bool> canActivate() async {
   var currentUser = await AuthService().getCurrentUser();
+  await Future.delayed(Duration(seconds: 2));
   return (currentUser != null && currentUser.isNotEmpty);
 }
 

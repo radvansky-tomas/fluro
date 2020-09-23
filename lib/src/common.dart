@@ -124,7 +124,7 @@ class WebMaterialPageRoute<T> extends MaterialPageRoute<T> {
             settings: settings,
             fullscreenDialog: fullscreenDialog);
 
-  // @override
+// @override
   // Widget buildTransitions(BuildContext context, Animation<double> animation,
   //     Animation<double> secondaryAnimation, Widget child) {
   //   return transitionsBuilder(context, animation, secondaryAnimation, child) ??
