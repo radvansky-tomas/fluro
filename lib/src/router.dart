@@ -55,22 +55,16 @@ class FluroRouter {
   /// Internal helper method to return widget defined by [AsyncHandler]
   Widget _futureWidget(BuildContext context, dynamic widgetData) {
     print('_futureWidget - ' + widgetData.toString());
-    if (widgetData is Future<Widget>) {
-      return FutureBuilder<Widget>(
-          future: widgetData,
-          builder: (context, AsyncSnapshot<Widget> snapshot) {
+    if (widgetData is Future<dynamic>) {
+      return FutureBuilder<dynamic>(
+          future:  widgetData,
+          builder: (context, AsyncSnapshot<dynamic> snapshot) {
             return snapshot.hasData
                 ? snapshot.data
                 : loadingWidget ?? _loadingWidgetFallback;
           });
-    } else if (widgetData is Widget) {
-      return widgetData;
     } else {
-      return Container(
-        child: Center(
-          child: Text('Not Found'),
-        ),
-      );
+      return widgetData as Widget;
     }
   }
 
@@ -171,6 +165,7 @@ class FluroRouter {
                           transitionDuration: transitionDuration,
                           transitionsBuilder: transitionsBuilder);
                       //TODO check how to execute animations here
+                      print(newMatch.route);
                       return newMatch.route.buildPage(context, null, null);
                     }
                     return loadingWidget ?? _loadingWidgetFallback;
@@ -178,7 +173,7 @@ class FluroRouter {
                 );
               }),
         );
-      } else if (handlerFunc is Widget || handlerFunc is Future<Widget>) {
+      } else {
         print('handlerFunc is Widget or Future');
         PageRoute createdRoute = _createPageRoute(appRoute, settingsToUse,
             handlerFunc, transitionDuration, transitionsBuilder);
@@ -202,7 +197,6 @@ class FluroRouter {
       dynamic handlerFunc,
       Duration transitionDuration,
       RouteTransitionsBuilder transitionsBuilder) {
-    print(_createPageRoute);
     print(handlerFunc);
     bool isNativeTransition = (route.transitionType == TransitionType.native ||
         route.transitionType == TransitionType.nativeModal);

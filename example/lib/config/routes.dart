@@ -2,7 +2,7 @@
  * fluro
  * Created by Yakka
  * https://theyakka.com
- * 
+ *
  * Copyright (c) 2019 Yakka, LLC. All rights reserved.
  * See LICENSE for distribution and usage details.
  */
@@ -35,20 +35,20 @@ class Routes {
     router.defineAsync(root,
         handler: rootHandler, transitionType: TransitionType.fadeIn);
 
-    router.define(auth,
+    router.defineAsync(auth,
         handler: authHandler, transitionType: TransitionType.fadeIn);
-    router.define(authLogin,
+    router.defineAsync(authLogin,
         handler: authLoginHandler, transitionType: TransitionType.fadeIn);
-    router.define(authRegister,
+    router.defineAsync(authRegister,
         handler: authRegisterHandler, transitionType: TransitionType.fadeIn);
 
-    router.define(home,
+    router.defineAsync(home,
         handler: homeHandler, transitionType: TransitionType.fadeIn);
-    router.define(homeDashboard,
+    router.defineAsync(homeDashboard,
         handler: homeDashboardHandler, transitionType: TransitionType.fadeIn);
-    router.define(homeContacts,
+    router.defineAsync(homeContacts,
         handler: homeContactsHandler, transitionType: TransitionType.fadeIn);
-    router.define(contactDetail,
+    router.defineAsync(contactDetail,
         handler: contactDetailHandler,
         transitionType: TransitionType.inFromRight);
   }
@@ -70,49 +70,69 @@ var rootHandler = AsyncHandler(handlerFunc:
   }
 });
 
-var authHandler = Handler(
-    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
+var authHandler = AsyncHandler(handlerFunc:
+    (BuildContext context, Map<String, List<String>> params) async {
+  //Logout first
+  await AuthService().logout();
+  return Redirect(Routes.authLogin);
+});
+
+var authLoginHandler = AsyncHandler(handlerFunc:
+    (BuildContext context, Map<String, List<String>> params) async {
+  //Logout first
+  await AuthService().logout();
   return AuthPage(
     isLogin: true,
   );
 });
 
-var authLoginHandler = Handler(
-    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
-  return AuthPage(
-    isLogin: true,
-  );
-});
-
-var authRegisterHandler = Handler(
-    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
+var authRegisterHandler = AsyncHandler(handlerFunc:
+    (BuildContext context, Map<String, List<String>> params) async {
+  //Logout first
+  await AuthService().logout();
   return AuthPage(
     isLogin: false,
   );
 });
 
-var homeHandler = Handler(
-    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
-  return Redirect(Routes.homeDashboard);
+var homeHandler = AsyncHandler(handlerFunc:
+    (BuildContext context, Map<String, List<String>> params) async {
+  if (await canActivate()) {
+    return Redirect(Routes.homeDashboard);
+  } else {
+    return Redirect(Routes.authLogin);
+  }
 });
 
-var homeDashboardHandler = Handler(
-    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
-  return HomePage(
-    selectedTab: 0,
-  );
+var homeDashboardHandler = AsyncHandler(handlerFunc:
+    (BuildContext context, Map<String, List<String>> params) async {
+  if (await canActivate()) {
+    return HomePage(
+      selectedTab: 0,
+    );
+  } else {
+    return Redirect(Routes.authLogin);
+  }
 });
 
-var homeContactsHandler = Handler(
-    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
-  return HomePage(
-    selectedTab: 1,
-  );
+var homeContactsHandler = AsyncHandler(handlerFunc:
+    (BuildContext context, Map<String, List<String>> params) async {
+  if (await canActivate()) {
+    return HomePage(
+      selectedTab: 1,
+    );
+  } else {
+    return Redirect(Routes.authLogin);
+  }
 });
 
-var contactDetailHandler = Handler(
-    handlerFunc: (BuildContext context, Map<String, List<String>> params) {
-  return ContactDetailPage(
-    contactId: params['contactId']?.first,
-  );
+var contactDetailHandler = AsyncHandler(handlerFunc:
+    (BuildContext context, Map<String, List<String>> params) async {
+  if (await canActivate()) {
+    return ContactDetailPage(
+      contactId: params['contactId']?.first,
+    );
+  } else {
+    return Redirect(Routes.authLogin);
+  }
 });
