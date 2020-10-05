@@ -1,9 +1,12 @@
 /*
- * fluro
- * Created by Yakka
+ * fluro2
+ * Created by R-Dev
+ * Tomas Radvansky
+ *
+ * Inspired by Yakka
  * https://theyakka.com
- * 
- * Copyright (c) 2019 Yakka, LLC. All rights reserved.
+ *
+ * Copyright (c) 2020 R-Dev, OU. All rights reserved.
  * See LICENSE for distribution and usage details.
  */
 

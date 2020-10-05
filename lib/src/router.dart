@@ -1,14 +1,18 @@
 /*
- * fluro
- * Created by Yakka
+ * fluro2
+ * Created by R-Dev
+ * Tomas Radvansky
+ *
+ * Inspired by Yakka
  * https://theyakka.com
- * 
- * Copyright (c) 2019 Yakka, LLC. All rights reserved.
+ *
+ * Copyright (c) 2020 R-Dev, OU. All rights reserved.
  * See LICENSE for distribution and usage details.
  */
 
 import 'dart:async';
-import 'package:universal_html/html.dart';
+import 'package:universal_html/html.dart' show window;
+import 'package:universal_platform/universal_platform.dart';
 
 import 'package:fluro/fluro.dart';
 import 'package:fluro/src/common.dart';
@@ -16,7 +20,7 @@ import 'package:fluro/src/transitions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:universal_platform/universal_platform.dart';
+
 
 class FluroRouter {
   static final appRouter = FluroRouter();

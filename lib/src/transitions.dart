@@ -1,4 +1,15 @@
-import 'package:fluro/src/common.dart';
+/*
+ * fluro2
+ * Created by R-Dev
+ * Tomas Radvansky
+ *
+ * Inspired by Yakka
+ * https://theyakka.com
+ *
+ * Copyright (c) 2020 R-Dev, OU. All rights reserved.
+ * See LICENSE for distribution and usage details.
+ */
+
 import 'package:flutter/widgets.dart';
 
 enum TransitionType {
