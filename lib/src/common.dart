@@ -14,23 +14,34 @@ import 'package:fluro/src/transitions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
-///Enums
-
+/// [route] is [visual] representation, ie [Widget] whilst
 ///
+/// [function] is [nonVisual] representation, calling method
 enum HandlerType {
   route,
   function,
 }
 
+/// [full] matching returns ONLY one segment defined exactly,
 ///
+/// while [partial] returns EVERY segment of route.
 enum InitialRouteMatching {
   full,
   partial,
 }
 
+/// [visual] - widget representation
+///
+/// [nonVisual] - [function] representation
+///
+/// [noMatch] - route not found
+///
+/// [redirect] - redirection to another [visual] route
 enum RouteMatchType { visual, nonVisual, noMatch, redirect }
 
+/// Defines [type] - [route] or [function] and [handlerFunc]
 ///
+/// to execute it asynchronously
 class AsyncHandler {
   AsyncHandler({this.type = HandlerType.route, this.handlerFunc});
 
@@ -38,6 +49,9 @@ class AsyncHandler {
   final AsyncHandlerFunc handlerFunc;
 }
 
+/// Defines [type] - [route] or [function] and [handlerFunc]
+///
+/// to execute it
 class Handler {
   Handler({this.type = HandlerType.route, this.handlerFunc});
 
@@ -85,7 +99,9 @@ class AppRoute {
   }
 }
 
+/// Is passed to native [Navigator], is contains abstract [route]
 ///
+/// with parsed [matchType], unless [Error] occurred [errorMessage]
 class RouteMatch {
   RouteMatch(
       {this.matchType = RouteMatchType.noMatch,
@@ -97,6 +113,7 @@ class RouteMatch {
   final String errorMessage;
 }
 
+/// Custom [Exception] thrown as 404 error with [message] and [path]
 class RouteNotFoundException implements Exception {
   final String message;
   final String path;
@@ -109,6 +126,9 @@ class RouteNotFoundException implements Exception {
   }
 }
 
+/// Adds support for WEB based transitions. Extends [MaterialPageRoute]
+///
+/// and keeps navigation, stack in order.
 class WebMaterialPageRoute<T> extends MaterialPageRoute<T> {
   final Duration transitionDuration;
   final RouteTransitionsBuilder transitionsBuilder;
