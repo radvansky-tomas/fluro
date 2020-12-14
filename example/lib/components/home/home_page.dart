@@ -81,6 +81,7 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
       body: TabBarView(
         children: [DashboardPage(), ContactsPage()],
         controller: _tabController,
+        key: ValueKey('tabview'),
       ),
     );
   }

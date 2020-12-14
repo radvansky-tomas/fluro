@@ -24,14 +24,17 @@ class LoginPageState extends State<LoginPage> {
         ListTile(
           title: Text('Email'),
           subtitle: TextField(),
+          key: ValueKey('email'),
         ),
         ListTile(
           title: Text('Password'),
+          key: ValueKey('password'),
           subtitle: TextField(),
         ),
         ListTile(
           title: RaisedButton(
             child: Text('Login'),
+            key: ValueKey('login'),
             onPressed: () async {
               await _authService.login('email', 'password');
               Application.router.navigateTo(context, Routes.root,replace: true, clearStack: true);

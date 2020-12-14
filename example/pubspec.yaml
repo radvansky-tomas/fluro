@@ -1,11 +1,19 @@
 name: router_example
 description: An example project for the flutter router.
 
+environment:
+  sdk: '>=2.10.0 <3.0.0'
+  flutter: '>=1.17.0 <2.0.0'
+
 dependencies:
   flutter:
     sdk: flutter
   fluro:
     path: ../
-  shared_preferences: ^0.5.10
+  shared_preferences: ^0.5.12+4
 flutter:
   uses-material-design: true
+
+dev_dependencies:
+  integration_test:
+  test: any

@@ -6,15 +6,11 @@
  * Copyright (c) 2019 Yakka, LLC. All rights reserved.
  * See LICENSE for distribution and usage details.
  */
-import 'dart:html';
-
 import 'package:fluro/fluro.dart';
 import 'package:flutter/material.dart';
 import 'package:router_example/components/auth/auth_page.dart';
-import 'package:router_example/components/base/base_page.dart';
 import 'package:router_example/components/home/contacts/contact_detail_page.dart';
 import 'package:router_example/components/home/home_page.dart';
-import 'package:router_example/config/application.dart';
 import 'package:router_example/services/auth_service.dart';
 
 class Routes {

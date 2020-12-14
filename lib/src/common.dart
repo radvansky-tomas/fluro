@@ -67,16 +67,14 @@ class Redirect {
 }
 
 ///
-typedef Route<T> RouteCreator<T>(
-    RouteSettings route, Map<String, List<String>> parameters);
+typedef Route<T> RouteCreator<T>(RouteSettings route, Map<String, List<String>> parameters);
 
 /// Returns dynamic [Future] which contains either [Widget] or [Redirect]
 typedef Future<dynamic> AsyncHandlerFunc(
     BuildContext context, Map<String, List<String>> parameters);
 
 /// Returns either [Widget] or [Redirect]
-typedef dynamic HandlerFunc(
-    BuildContext context, Map<String, List<String>> parameters);
+typedef dynamic HandlerFunc(BuildContext context, Map<String, List<String>> parameters);
 
 ///
 class AppRoute {
@@ -140,7 +138,6 @@ class WebMaterialPageRoute<T> extends MaterialPageRoute<T> {
     bool fullscreenDialog = false,
     this.transitionsBuilder,
     this.transitionDuration = const Duration(milliseconds: 250),
-    //this.transitionsBuilder
   }) : super(
             builder: builder,
             maintainState: maintainState,
@@ -151,8 +148,7 @@ class WebMaterialPageRoute<T> extends MaterialPageRoute<T> {
   Widget buildTransitions(BuildContext context, Animation<double> animation,
       Animation<double> secondaryAnimation, Widget child) {
     return transitionsBuilder != null
-        ? transitionsBuilder(context, animation, secondaryAnimation, child) ??
-            child
+        ? transitionsBuilder(context, animation, secondaryAnimation, child) ?? child
         : child;
   }
 }

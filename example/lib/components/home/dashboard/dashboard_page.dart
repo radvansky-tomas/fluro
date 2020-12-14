@@ -8,6 +8,6 @@ class DashboardPage extends StatefulWidget {
 class DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return Container(key: ValueKey('dashboard'),);
   }
 }
