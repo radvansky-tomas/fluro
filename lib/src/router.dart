@@ -151,9 +151,8 @@ class FluroRouter {
                   future: handlerFunc,
                   builder: (context, snapshot) {
                     print('WebMaterialPageRoute Future Builder' + snapshot.connectionState.toString());
-                    print('data' + snapshot.data?.route);
-                    if (snapshot.connectionState == ConnectionState.active && snapshot.hasData) {
-                      print('handlerFunc has data');
+                    if (snapshot.hasData) {
+                      print('handlerFunc has data' + snapshot.data.route);
                       if (UniversalPlatform.isWeb) {
                         window.history.pushState(null, snapshot.data.route,
                             (this.useHash ? '#' : '') + snapshot.data.route);
