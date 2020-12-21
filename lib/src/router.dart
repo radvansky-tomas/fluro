@@ -21,15 +21,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-
 class FluroRouter {
   static final appRouter = FluroRouter();
   final InitialRouteMatching initialRouteMatching;
   final bool useHash;
 
-  FluroRouter(
-      {this.initialRouteMatching = InitialRouteMatching.full,
-      this.useHash = true});
+  FluroRouter({this.initialRouteMatching = InitialRouteMatching.full, this.useHash = true});
 
   /// The tree structure that stores the defined routes
   final RouteTree _routeTree = RouteTree();
@@ -61,11 +58,9 @@ class FluroRouter {
     print('_futureWidget - ' + widgetData.toString());
     if (widgetData is Future<dynamic>) {
       return FutureBuilder<dynamic>(
-          future:  widgetData,
+          future: widgetData,
           builder: (context, AsyncSnapshot<dynamic> snapshot) {
-            return snapshot.hasData
-                ? snapshot.data
-                : loadingWidget ?? _loadingWidgetFallback;
+            return snapshot.hasData ? snapshot.data : loadingWidget ?? _loadingWidgetFallback;
           });
     } else {
       return widgetData as Widget;
@@ -73,8 +68,7 @@ class FluroRouter {
   }
 
   /// Creates a [AppRoute] definition for the passed [Handler]. You can optionally provide a default transition type.
-  void define(String routePath,
-      {@required Handler handler, TransitionType transitionType}) {
+  void define(String routePath, {@required Handler handler, TransitionType transitionType}) {
     print('Define - ' + routePath);
     _routeTree.addRoute(
       AppRoute(routePath, handler, transitionType: transitionType),
@@ -90,8 +84,7 @@ class FluroRouter {
     );
   }
 
-  AppRoute getAppRoute(
-      {BuildContext buildContext, String path, TransitionType transitionType}) {
+  AppRoute getAppRoute({BuildContext buildContext, String path, TransitionType transitionType}) {
     print('getAppRoute - ' + path);
     AppRouteMatch match = _routeTree.matchRoute(path);
     AppRoute route = match?.route;
@@ -102,8 +95,7 @@ class FluroRouter {
     }
     var parameters = match?.parameters ?? <String, List<String>>{};
     //return handler.handlerFunc(buildContext, redirectParameters);
-    return AppRoute(path, handler,
-        transitionType: transition, parameters: parameters);
+    return AppRoute(path, handler, transitionType: transition, parameters: parameters);
   }
 
   /// Logic to process names [path] to [RouteMatch] and add desired parameters such as [routeSettings], [transitionType], [transitionDuration], [transitionsBuilder]
@@ -118,13 +110,12 @@ class FluroRouter {
       settingsToUse = RouteSettings(name: path);
     }
 
-    AppRoute appRoute = getAppRoute(
-        buildContext: buildContext, path: path, transitionType: transitionType);
+    AppRoute appRoute =
+        getAppRoute(buildContext: buildContext, path: path, transitionType: transitionType);
 
     if (appRoute == null && notFoundHandler == null) {
       return RouteMatch(
-          matchType: RouteMatchType.noMatch,
-          errorMessage: "No matching route was found");
+          matchType: RouteMatchType.noMatch, errorMessage: "No matching route was found");
     }
 
     if (appRoute.handler is Handler || appRoute.handler is AsyncHandler) {
@@ -160,9 +151,12 @@ class FluroRouter {
                   future: handlerFunc,
                   builder: (context, snapshot) {
                     print('WebMaterialPageRoute Future Builder');
-                    if (snapshot.hasData) {
-                      window.history.pushState(null, snapshot.data.route,
-                          (this.useHash ? '#' : '') + snapshot.data.route);
+                    if (snapshot.connectionState == ConnectionState.active && snapshot.hasData) {
+                      print('handlerFunc has data');
+                      if (UniversalPlatform.isWeb) {
+                        window.history.pushState(null, snapshot.data.route,
+                            (this.useHash ? '#' : '') + snapshot.data.route);
+                      }
                       var newMatch = _matchRoute(context, snapshot.data.route,
                           routeSettings: settingsToUse,
                           transitionType: appRoute.transitionType,
@@ -179,8 +173,8 @@ class FluroRouter {
         );
       } else {
         print('handlerFunc is Widget or Future');
-        PageRoute createdRoute = _createPageRoute(appRoute, settingsToUse,
-            handlerFunc, transitionDuration, transitionsBuilder);
+        PageRoute createdRoute = _createPageRoute(
+            appRoute, settingsToUse, handlerFunc, transitionDuration, transitionsBuilder);
 
         return RouteMatch(
           matchType: RouteMatchType.visual,
@@ -191,16 +185,11 @@ class FluroRouter {
 
     print('No matching route was found');
     return RouteMatch(
-        matchType: RouteMatchType.noMatch,
-        errorMessage: "No matching route was found");
+        matchType: RouteMatchType.noMatch, errorMessage: "No matching route was found");
   }
 
-  Route<dynamic> _createPageRoute(
-      AppRoute route,
-      RouteSettings routeSettings,
-      dynamic handlerFunc,
-      Duration transitionDuration,
-      RouteTransitionsBuilder transitionsBuilder) {
+  Route<dynamic> _createPageRoute(AppRoute route, RouteSettings routeSettings, dynamic handlerFunc,
+      Duration transitionDuration, RouteTransitionsBuilder transitionsBuilder) {
     print(handlerFunc);
     bool isNativeTransition = (route.transitionType == TransitionType.native ||
         route.transitionType == TransitionType.nativeModal);
@@ -208,16 +197,14 @@ class FluroRouter {
       if (UniversalPlatform.isIOS) {
         return CupertinoPageRoute<dynamic>(
             settings: routeSettings,
-            fullscreenDialog:
-                route.transitionType == TransitionType.nativeModal,
+            fullscreenDialog: route.transitionType == TransitionType.nativeModal,
             builder: (BuildContext context) {
               return _futureWidget(context, handlerFunc);
             });
       } else {
         return MaterialPageRoute<dynamic>(
             settings: routeSettings,
-            fullscreenDialog:
-                route.transitionType == TransitionType.nativeModal,
+            fullscreenDialog: route.transitionType == TransitionType.nativeModal,
             builder: (BuildContext context) {
               return _futureWidget(context, handlerFunc);
             });
@@ -226,8 +213,7 @@ class FluroRouter {
         route.transitionType == TransitionType.materialFullScreenDialog) {
       return MaterialPageRoute<dynamic>(
           settings: routeSettings,
-          fullscreenDialog:
-              route.transitionType == TransitionType.materialFullScreenDialog,
+          fullscreenDialog: route.transitionType == TransitionType.materialFullScreenDialog,
           builder: (BuildContext context) {
             return _futureWidget(context, handlerFunc);
           });
@@ -235,8 +221,7 @@ class FluroRouter {
         route.transitionType == TransitionType.cupertinoFullScreenDialog) {
       return CupertinoPageRoute<dynamic>(
           settings: routeSettings,
-          fullscreenDialog:
-              route.transitionType == TransitionType.cupertinoFullScreenDialog,
+          fullscreenDialog: route.transitionType == TransitionType.cupertinoFullScreenDialog,
           builder: (BuildContext context) {
             return _futureWidget(context, handlerFunc);
           });
@@ -245,16 +230,14 @@ class FluroRouter {
       if (route.transitionType == TransitionType.custom) {
         routeTransitionsBuilder = transitionsBuilder;
       } else {
-        routeTransitionsBuilder =
-            FluroTransitions.buildTransitions(route.transitionType);
+        routeTransitionsBuilder = FluroTransitions.buildTransitions(route.transitionType);
       }
       if (UniversalPlatform.isWeb) {
         return WebMaterialPageRoute<dynamic>(
             settings: routeSettings,
             transitionDuration: transitionDuration,
             transitionsBuilder: routeTransitionsBuilder,
-            fullscreenDialog:
-                route.transitionType == TransitionType.materialFullScreenDialog,
+            fullscreenDialog: route.transitionType == TransitionType.materialFullScreenDialog,
             builder: (BuildContext context) {
               return _futureWidget(context, handlerFunc);
             });
@@ -277,8 +260,7 @@ class FluroRouter {
   /// property as callback to create routes that can be used with the [Navigator] class.
   Route<dynamic> generator(RouteSettings routeSettings) {
     print('generator');
-    RouteMatch match =
-        _matchRoute(null, routeSettings.name, routeSettings: routeSettings);
+    RouteMatch match = _matchRoute(null, routeSettings.name, routeSettings: routeSettings);
     return match.route;
   }
 
@@ -295,15 +277,13 @@ class FluroRouter {
       print(fullMatch);
 
       /// Returns full match if its [RouteMatchType.visual] or [RouteMatchType.redirect] otherwise [rootMatch]
-      return fullMatch.route != null &&
-                  fullMatch.matchType == RouteMatchType.visual ||
+      return fullMatch.route != null && fullMatch.matchType == RouteMatchType.visual ||
               fullMatch.matchType == RouteMatchType.redirect
           ? [fullMatch.route]
           : [rootMatch.route];
     } else {
       /// Requires full processing of partial matches, do not include empty routes
-      var segments =
-          path.split('/').where((element) => element.isNotEmpty).toList();
+      var segments = path.split('/').where((element) => element.isNotEmpty).toList();
 
       List<Route<dynamic>> result = [];
 
@@ -334,8 +314,7 @@ class FluroRouter {
   }
 
   /// Helper function to return [result] from pop() method
-  pop<T extends Object>(BuildContext context, [T result]) =>
-      Navigator.pop(context, result);
+  pop<T extends Object>(BuildContext context, [T result]) => Navigator.pop(context, result);
 
   /// Use this method instead of generic [Navigator.push]
   Future navigateTo(BuildContext context, String path,
@@ -359,12 +338,10 @@ class FluroRouter {
       }
       if (route != null) {
         if (clearStack) {
-          future =
-              Navigator.pushAndRemoveUntil(context, route, (check) => false);
+          future = Navigator.pushAndRemoveUntil(context, route, (check) => false);
         } else {
-          future = replace
-              ? Navigator.pushReplacement(context, route)
-              : Navigator.push(context, route);
+          future =
+              replace ? Navigator.pushReplacement(context, route) : Navigator.push(context, route);
         }
         completer.complete();
       } else {
