@@ -139,7 +139,7 @@ class FluroRouter {
             transitionDuration: transitionDuration,
             transitionsBuilder: transitionsBuilder);
       } else if (handlerFunc is Future<Redirect>) {
-        print('handlerFunc is Future Redirect' + handlerFunc.toString());
+        print('handlerFunc is Future Redirect' + handlerFunc.runtimeType.toString());
         return RouteMatch(
           matchType: RouteMatchType.redirect,
           route: WebMaterialPageRoute<dynamic>(
@@ -150,7 +150,8 @@ class FluroRouter {
                 return FutureBuilder<Redirect>(
                   future: handlerFunc,
                   builder: (context, snapshot) {
-                    print('WebMaterialPageRoute Future Builder');
+                    print('WebMaterialPageRoute Future Builder' + snapshot.connectionState.toString());
+                    print('data' + snapshot.data?.route);
                     if (snapshot.connectionState == ConnectionState.active && snapshot.hasData) {
                       print('handlerFunc has data');
                       if (UniversalPlatform.isWeb) {
