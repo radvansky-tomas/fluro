@@ -93,6 +93,7 @@ class FluroRouter {
     if (transitionType == null) {
       transition = route != null ? route.transitionType : TransitionType.native;
     }
+
     var parameters = match?.parameters ?? <String, List<String>>{};
     //return handler.handlerFunc(buildContext, redirectParameters);
     return AppRoute(path, handler, transitionType: transition, parameters: parameters);
@@ -268,11 +269,11 @@ class FluroRouter {
   /// hard page refresh or deep links. Its dependant on [requiredInitialRouteMatching] which is by default
   /// set to [InitialRouteMatching.full]. In that case full PATH needs to match to return just its result.
   /// Otherwise [path] is parsed into multiple segments divided by '/' to provide partial routes as history.
-  List<Route<dynamic>> initialGenerator(String path) {
-    RouteMatch rootMatch = _matchRoute(null, '/', routeSettings: null);
+  List<Route<dynamic>> initialGenerator(String path, BuildContext context) {
+    RouteMatch rootMatch = _matchRoute(context, '/', routeSettings: null);
     print('inital generator');
     if (this.initialRouteMatching == InitialRouteMatching.full) {
-      RouteMatch fullMatch = _matchRoute(null, path, routeSettings: null);
+      RouteMatch fullMatch = _matchRoute(context, path, routeSettings: null);
       print('FullMatch');
       print(fullMatch);
 

@@ -36,7 +36,7 @@ class AppComponentState extends State<AppComponent> {
         primarySwatch: Colors.blue,
       ),
       onGenerateRoute: Application.router.generator,
-      onGenerateInitialRoutes: Application.router.initialGenerator,
+      onGenerateInitialRoutes: (path) => Application.router.initialGenerator(path, context),
     );
     return app;
   }

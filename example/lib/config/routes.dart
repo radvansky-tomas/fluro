@@ -59,6 +59,7 @@ Future<bool> canActivate() async {
 
 var rootHandler = AsyncHandler(handlerFunc:
     (BuildContext context, Map<String, List<String>> params) async {
+  print(context);
   if (await canActivate()) {
     return Redirect(Routes.homeDashboard);
   } else {
