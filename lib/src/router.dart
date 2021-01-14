@@ -56,11 +56,17 @@ class FluroRouter {
   /// Internal helper method to return widget defined by [AsyncHandler]
   Widget _futureWidget(BuildContext context, dynamic widgetData) {
     print('_futureWidget - ' + widgetData.toString());
-    if (widgetData is Future<dynamic>) {
+    if (widgetData is Future) {
       return FutureBuilder<dynamic>(
           future: widgetData,
           builder: (context, AsyncSnapshot<dynamic> snapshot) {
-            return snapshot.hasData ? snapshot.data : loadingWidget ?? _loadingWidgetFallback;
+            print(snapshot.connectionState);
+            print(snapshot.data);
+            return snapshot.connectionState == ConnectionState.done &&
+                    snapshot.hasData &&
+                    snapshot.data is Widget
+                ? snapshot.data
+                : loadingWidget ?? _loadingWidgetFallback;
           });
     } else {
       return widgetData as Widget;
@@ -99,6 +105,40 @@ class FluroRouter {
     return AppRoute(path, handler, transitionType: transition, parameters: parameters);
   }
 
+  RouteMatch _redirectRouteMatch(Future<Redirect> handlerFunc) {
+    return RouteMatch(
+      matchType: RouteMatchType.redirect,
+      route: WebMaterialPageRoute<dynamic>(
+          //TODO: This needs to update async, that's why using [window.history.pushState]
+          settings: settingsToUse,
+          builder: (BuildContext context) {
+            print('WebMaterialPageRoute Builder');
+            return FutureBuilder<Redirect>(
+              future: handlerFunc,
+              builder: (context, snapshot) {
+                print('WebMaterialPageRoute Future Builder' + snapshot.connectionState.toString());
+                if (snapshot.hasData) {
+                  print('handlerFunc has data' + snapshot.data.route);
+                  if (UniversalPlatform.isWeb) {
+                    window.history.pushState(
+                        null, snapshot.data.route, (this.useHash ? '#' : '') + snapshot.data.route);
+                  }
+                  var newMatch = _matchRoute(context, snapshot.data.route,
+                      routeSettings: settingsToUse,
+                      transitionType: appRoute.transitionType,
+                      transitionDuration: transitionDuration,
+                      transitionsBuilder: transitionsBuilder);
+                  //TODO check how to execute animations here
+                  print(newMatch.route);
+                  return newMatch.route.buildPage(context, null, null);
+                }
+                return loadingWidget ?? _loadingWidgetFallback;
+              },
+            );
+          }),
+    );
+  }
+
   /// Logic to process names [path] to [RouteMatch] and add desired parameters such as [routeSettings], [transitionType], [transitionDuration], [transitionsBuilder]
   RouteMatch _matchRoute(BuildContext buildContext, String path,
       {RouteSettings routeSettings,
@@ -130,9 +170,8 @@ class FluroRouter {
       }
 
       var handlerFunc = appRoute.callHandler(buildContext);
+      print('handlerFunc is  ' + handlerFunc.runtimeType.toString());
       if (handlerFunc is Redirect) {
-        print('handlerFunc is Redirect');
-
         /// Recursive function
         return _matchRoute(buildContext, handlerFunc.route,
             routeSettings: RouteSettings(name: handlerFunc.route),
@@ -140,40 +179,8 @@ class FluroRouter {
             transitionDuration: transitionDuration,
             transitionsBuilder: transitionsBuilder);
       } else if (handlerFunc is Future<Redirect>) {
-        print('handlerFunc is Future Redirect' + handlerFunc.runtimeType.toString());
-        return RouteMatch(
-          matchType: RouteMatchType.redirect,
-          route: WebMaterialPageRoute<dynamic>(
-              //TODO: This needs to update async, that's why using [window.history.pushState]
-              settings: settingsToUse,
-              builder: (BuildContext context) {
-                print('WebMaterialPageRoute Builder');
-                return FutureBuilder<Redirect>(
-                  future: handlerFunc,
-                  builder: (context, snapshot) {
-                    print('WebMaterialPageRoute Future Builder' + snapshot.connectionState.toString());
-                    if (snapshot.hasData) {
-                      print('handlerFunc has data' + snapshot.data.route);
-                      if (UniversalPlatform.isWeb) {
-                        window.history.pushState(null, snapshot.data.route,
-                            (this.useHash ? '#' : '') + snapshot.data.route);
-                      }
-                      var newMatch = _matchRoute(context, snapshot.data.route,
-                          routeSettings: settingsToUse,
-                          transitionType: appRoute.transitionType,
-                          transitionDuration: transitionDuration,
-                          transitionsBuilder: transitionsBuilder);
-                      //TODO check how to execute animations here
-                      print(newMatch.route);
-                      return newMatch.route.buildPage(context, null, null);
-                    }
-                    return loadingWidget ?? _loadingWidgetFallback;
-                  },
-                );
-              }),
-        );
+        return _redirectRouteMatch(handlerFunc);
       } else {
-        print('handlerFunc is Widget or Future');
         PageRoute createdRoute = _createPageRoute(
             appRoute, settingsToUse, handlerFunc, transitionDuration, transitionsBuilder);
 
@@ -191,7 +198,6 @@ class FluroRouter {
 
   Route<dynamic> _createPageRoute(AppRoute route, RouteSettings routeSettings, dynamic handlerFunc,
       Duration transitionDuration, RouteTransitionsBuilder transitionsBuilder) {
-    print(handlerFunc);
     bool isNativeTransition = (route.transitionType == TransitionType.native ||
         route.transitionType == TransitionType.nativeModal);
     if (isNativeTransition && !UniversalPlatform.isWeb) {
