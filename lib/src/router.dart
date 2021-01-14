@@ -105,7 +105,12 @@ class FluroRouter {
     return AppRoute(path, handler, transitionType: transition, parameters: parameters);
   }
 
-  RouteMatch _redirectRouteMatch(Future<Redirect> handlerFunc) {
+  RouteMatch _redirectRouteMatch(
+      {Future<Redirect> handlerFunc,
+      RouteSettings settingsToUse,
+      AppRoute appRoute,
+      RouteTransitionsBuilder transitionsBuilder,
+      Duration transitionDuration}) {
     return RouteMatch(
       matchType: RouteMatchType.redirect,
       route: WebMaterialPageRoute<dynamic>(
@@ -179,7 +184,12 @@ class FluroRouter {
             transitionDuration: transitionDuration,
             transitionsBuilder: transitionsBuilder);
       } else if (handlerFunc is Future<Redirect>) {
-        return _redirectRouteMatch(handlerFunc);
+        return _redirectRouteMatch(
+            handlerFunc: handlerFunc,
+            settingsToUse: settingsToUse,
+            appRoute: appRoute,
+            transitionDuration: transitionDuration,
+            transitionsBuilder: transitionsBuilder);
       } else {
         PageRoute createdRoute = _createPageRoute(
             appRoute, settingsToUse, handlerFunc, transitionDuration, transitionsBuilder);
