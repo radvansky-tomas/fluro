@@ -26,7 +26,9 @@ class FluroRouter {
   final InitialRouteMatching initialRouteMatching;
   final bool useHash;
 
-  FluroRouter({this.initialRouteMatching = InitialRouteMatching.full, this.useHash = true});
+  FluroRouter(
+      {this.initialRouteMatching = InitialRouteMatching.full,
+      this.useHash = true});
 
   /// The tree structure that stores the defined routes
   final RouteTree _routeTree = RouteTree();
@@ -74,7 +76,8 @@ class FluroRouter {
   }
 
   /// Creates a [AppRoute] definition for the passed [Handler]. You can optionally provide a default transition type.
-  void define(String routePath, {@required Handler handler, TransitionType transitionType}) {
+  void define(String routePath,
+      {@required Handler handler, TransitionType transitionType}) {
     print('Define - ' + routePath);
     _routeTree.addRoute(
       AppRoute(routePath, handler, transitionType: transitionType),
@@ -90,7 +93,8 @@ class FluroRouter {
     );
   }
 
-  AppRoute getAppRoute({BuildContext buildContext, String path, TransitionType transitionType}) {
+  AppRoute getAppRoute(
+      {BuildContext buildContext, String path, TransitionType transitionType}) {
     print('getAppRoute - ' + path);
     AppRouteMatch match = _routeTree.matchRoute(path);
     AppRoute route = match?.route;
@@ -102,11 +106,12 @@ class FluroRouter {
 
     var parameters = match?.parameters ?? <String, List<String>>{};
     //return handler.handlerFunc(buildContext, redirectParameters);
-    return AppRoute(path, handler, transitionType: transition, parameters: parameters);
+    return AppRoute(path, handler,
+        transitionType: transition, parameters: parameters);
   }
 
   RouteMatch _redirectRouteMatch(
-      {Future<Redirect> handlerFunc,
+      {dynamic handlerFunc,
       RouteSettings settingsToUse,
       AppRoute appRoute,
       RouteTransitionsBuilder transitionsBuilder,
@@ -118,24 +123,30 @@ class FluroRouter {
           settings: settingsToUse,
           builder: (BuildContext context) {
             print('WebMaterialPageRoute Builder');
-            return FutureBuilder<Redirect>(
+            return FutureBuilder(
               future: handlerFunc,
               builder: (context, snapshot) {
-                print('WebMaterialPageRoute Future Builder' + snapshot.connectionState.toString());
+                print('WebMaterialPageRoute Future Builder -> ' +
+                    snapshot.connectionState.toString());
                 if (snapshot.hasData) {
-                  print('handlerFunc has data' + snapshot.data.route);
-                  if (UniversalPlatform.isWeb) {
-                    window.history.pushState(
-                        null, snapshot.data.route, (this.useHash ? '#' : '') + snapshot.data.route);
+                  print('handlerFunc has data' + snapshot.data.runtimeType.toString());
+                  if (snapshot.data is Redirect) {
+                    if (UniversalPlatform.isWeb) {
+                      window.history.pushState(null, snapshot.data.route,
+                          (this.useHash ? '#' : '') + snapshot.data.route);
+                    }
+                    var newMatch = _matchRoute(context, snapshot.data.route,
+                        routeSettings: settingsToUse,
+                        transitionType: appRoute.transitionType,
+                        transitionDuration: transitionDuration,
+                        transitionsBuilder: transitionsBuilder);
+                    //TODO check how to execute animations here
+                    print(newMatch.route);
+                    return newMatch.route.buildPage(context, null, null);
+                  } else if (snapshot.data is Widget ||
+                      snapshot.data is Future<Widget>) {
+                    return _futureWidget(context, snapshot.data);
                   }
-                  var newMatch = _matchRoute(context, snapshot.data.route,
-                      routeSettings: settingsToUse,
-                      transitionType: appRoute.transitionType,
-                      transitionDuration: transitionDuration,
-                      transitionsBuilder: transitionsBuilder);
-                  //TODO check how to execute animations here
-                  print(newMatch.route);
-                  return newMatch.route.buildPage(context, null, null);
                 }
                 return loadingWidget ?? _loadingWidgetFallback;
               },
@@ -156,12 +167,13 @@ class FluroRouter {
       settingsToUse = RouteSettings(name: path);
     }
 
-    AppRoute appRoute =
-        getAppRoute(buildContext: buildContext, path: path, transitionType: transitionType);
+    AppRoute appRoute = getAppRoute(
+        buildContext: buildContext, path: path, transitionType: transitionType);
 
     if (appRoute == null && notFoundHandler == null) {
       return RouteMatch(
-          matchType: RouteMatchType.noMatch, errorMessage: "No matching route was found");
+          matchType: RouteMatchType.noMatch,
+          errorMessage: "No matching route was found");
     }
 
     if (appRoute.handler is Handler || appRoute.handler is AsyncHandler) {
@@ -183,45 +195,52 @@ class FluroRouter {
             transitionType: appRoute.transitionType,
             transitionDuration: transitionDuration,
             transitionsBuilder: transitionsBuilder);
-      } else if (handlerFunc is Future<Redirect>) {
+      } else if (handlerFunc is Widget || handlerFunc is Future<Widget>) {
+        PageRoute createdRoute = _createPageRoute(appRoute, settingsToUse,
+            handlerFunc, transitionDuration, transitionsBuilder);
+
+        return RouteMatch(
+          matchType: RouteMatchType.visual,
+          route: createdRoute,
+        );
+      } else {
         return _redirectRouteMatch(
             handlerFunc: handlerFunc,
             settingsToUse: settingsToUse,
             appRoute: appRoute,
             transitionDuration: transitionDuration,
             transitionsBuilder: transitionsBuilder);
-      } else {
-        PageRoute createdRoute = _createPageRoute(
-            appRoute, settingsToUse, handlerFunc, transitionDuration, transitionsBuilder);
-
-        return RouteMatch(
-          matchType: RouteMatchType.visual,
-          route: createdRoute,
-        );
       }
     }
 
     print('No matching route was found');
     return RouteMatch(
-        matchType: RouteMatchType.noMatch, errorMessage: "No matching route was found");
+        matchType: RouteMatchType.noMatch,
+        errorMessage: "No matching route was found");
   }
 
-  Route<dynamic> _createPageRoute(AppRoute route, RouteSettings routeSettings, dynamic handlerFunc,
-      Duration transitionDuration, RouteTransitionsBuilder transitionsBuilder) {
+  Route<dynamic> _createPageRoute(
+      AppRoute route,
+      RouteSettings routeSettings,
+      dynamic handlerFunc,
+      Duration transitionDuration,
+      RouteTransitionsBuilder transitionsBuilder) {
     bool isNativeTransition = (route.transitionType == TransitionType.native ||
         route.transitionType == TransitionType.nativeModal);
     if (isNativeTransition && !UniversalPlatform.isWeb) {
       if (UniversalPlatform.isIOS) {
         return CupertinoPageRoute<dynamic>(
             settings: routeSettings,
-            fullscreenDialog: route.transitionType == TransitionType.nativeModal,
+            fullscreenDialog:
+                route.transitionType == TransitionType.nativeModal,
             builder: (BuildContext context) {
               return _futureWidget(context, handlerFunc);
             });
       } else {
         return MaterialPageRoute<dynamic>(
             settings: routeSettings,
-            fullscreenDialog: route.transitionType == TransitionType.nativeModal,
+            fullscreenDialog:
+                route.transitionType == TransitionType.nativeModal,
             builder: (BuildContext context) {
               return _futureWidget(context, handlerFunc);
             });
@@ -230,7 +249,8 @@ class FluroRouter {
         route.transitionType == TransitionType.materialFullScreenDialog) {
       return MaterialPageRoute<dynamic>(
           settings: routeSettings,
-          fullscreenDialog: route.transitionType == TransitionType.materialFullScreenDialog,
+          fullscreenDialog:
+              route.transitionType == TransitionType.materialFullScreenDialog,
           builder: (BuildContext context) {
             return _futureWidget(context, handlerFunc);
           });
@@ -238,7 +258,8 @@ class FluroRouter {
         route.transitionType == TransitionType.cupertinoFullScreenDialog) {
       return CupertinoPageRoute<dynamic>(
           settings: routeSettings,
-          fullscreenDialog: route.transitionType == TransitionType.cupertinoFullScreenDialog,
+          fullscreenDialog:
+              route.transitionType == TransitionType.cupertinoFullScreenDialog,
           builder: (BuildContext context) {
             return _futureWidget(context, handlerFunc);
           });
@@ -247,14 +268,16 @@ class FluroRouter {
       if (route.transitionType == TransitionType.custom) {
         routeTransitionsBuilder = transitionsBuilder;
       } else {
-        routeTransitionsBuilder = FluroTransitions.buildTransitions(route.transitionType);
+        routeTransitionsBuilder =
+            FluroTransitions.buildTransitions(route.transitionType);
       }
       if (UniversalPlatform.isWeb) {
         return WebMaterialPageRoute<dynamic>(
             settings: routeSettings,
             transitionDuration: transitionDuration,
             transitionsBuilder: routeTransitionsBuilder,
-            fullscreenDialog: route.transitionType == TransitionType.materialFullScreenDialog,
+            fullscreenDialog:
+                route.transitionType == TransitionType.materialFullScreenDialog,
             builder: (BuildContext context) {
               return _futureWidget(context, handlerFunc);
             });
@@ -277,7 +300,8 @@ class FluroRouter {
   /// property as callback to create routes that can be used with the [Navigator] class.
   Route<dynamic> generator(RouteSettings routeSettings) {
     print('generator');
-    RouteMatch match = _matchRoute(null, routeSettings.name, routeSettings: routeSettings);
+    RouteMatch match =
+        _matchRoute(null, routeSettings.name, routeSettings: routeSettings);
     return match.route;
   }
 
@@ -294,13 +318,15 @@ class FluroRouter {
       print(fullMatch);
 
       /// Returns full match if its [RouteMatchType.visual] or [RouteMatchType.redirect] otherwise [rootMatch]
-      return fullMatch.route != null && fullMatch.matchType == RouteMatchType.visual ||
+      return fullMatch.route != null &&
+                  fullMatch.matchType == RouteMatchType.visual ||
               fullMatch.matchType == RouteMatchType.redirect
           ? [fullMatch.route]
           : [rootMatch.route];
     } else {
       /// Requires full processing of partial matches, do not include empty routes
-      var segments = path.split('/').where((element) => element.isNotEmpty).toList();
+      var segments =
+          path.split('/').where((element) => element.isNotEmpty).toList();
 
       List<Route<dynamic>> result = [];
 
@@ -331,7 +357,8 @@ class FluroRouter {
   }
 
   /// Helper function to return [result] from pop() method
-  pop<T extends Object>(BuildContext context, [T result]) => Navigator.pop(context, result);
+  pop<T extends Object>(BuildContext context, [T result]) =>
+      Navigator.pop(context, result);
 
   /// Use this method instead of generic [Navigator.push]
   Future navigateTo(BuildContext context, String path,
@@ -355,10 +382,12 @@ class FluroRouter {
       }
       if (route != null) {
         if (clearStack) {
-          future = Navigator.pushAndRemoveUntil(context, route, (check) => false);
-        } else {
           future =
-              replace ? Navigator.pushReplacement(context, route) : Navigator.push(context, route);
+              Navigator.pushAndRemoveUntil(context, route, (check) => false);
+        } else {
+          future = replace
+              ? Navigator.pushReplacement(context, route)
+              : Navigator.push(context, route);
         }
         completer.complete();
       } else {
