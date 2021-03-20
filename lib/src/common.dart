@@ -43,7 +43,7 @@ enum RouteMatchType { visual, nonVisual, noMatch, redirect }
 ///
 /// to execute it asynchronously
 class AsyncHandler {
-  AsyncHandler({this.type = HandlerType.route, this.handlerFunc});
+  AsyncHandler({this.type = HandlerType.route, required this.handlerFunc});
 
   final HandlerType type;
   final AsyncHandlerFunc handlerFunc;
@@ -53,7 +53,7 @@ class AsyncHandler {
 ///
 /// to execute it
 class Handler {
-  Handler({this.type = HandlerType.route, this.handlerFunc});
+  Handler({this.type = HandlerType.route, required this.handlerFunc});
 
   final HandlerType type;
   final HandlerFunc handlerFunc;
@@ -74,20 +74,20 @@ typedef Future<dynamic> AsyncHandlerFunc(
     BuildContext context, Map<String, List<String>> parameters);
 
 /// Returns either [Widget] or [Redirect]
-typedef dynamic HandlerFunc(BuildContext context, Map<String, List<String>> parameters);
+typedef dynamic HandlerFunc(BuildContext context, Map<String, List<String>>? parameters);
 
 ///
 class AppRoute {
   AppRoute(this.route, this.handler, {this.transitionType, this.parameters});
 
-  final String route;
+  final String? route;
 
   /// Can be [Handler] or [AsyncHandler]
   final dynamic handler;
-  final TransitionType transitionType;
-  final Map<String, List<String>> parameters;
+  final TransitionType? transitionType;
+  final Map<String, List<String>>? parameters;
 
-  dynamic callHandler(BuildContext context) {
+  dynamic callHandler(BuildContext? context) {
     print(handler);
     if (handler is Handler) {
       return handler.handlerFunc(context, parameters);
@@ -106,7 +106,7 @@ class RouteMatch {
       this.route,
       this.errorMessage = "Unable to match route. Please check the logs."});
 
-  final PageRoute route;
+  final PageRoute? route;
   RouteMatchType matchType;
   final String errorMessage;
 }
@@ -129,11 +129,11 @@ class RouteNotFoundException implements Exception {
 /// and keeps navigation, stack in order.
 class WebMaterialPageRoute<T> extends MaterialPageRoute<T> {
   final Duration transitionDuration;
-  final RouteTransitionsBuilder transitionsBuilder;
+  final RouteTransitionsBuilder? transitionsBuilder;
 
   WebMaterialPageRoute({
-    @required WidgetBuilder builder,
-    RouteSettings settings,
+    required WidgetBuilder builder,
+    RouteSettings? settings,
     bool maintainState = true,
     bool fullscreenDialog = false,
     this.transitionsBuilder,
@@ -148,7 +148,7 @@ class WebMaterialPageRoute<T> extends MaterialPageRoute<T> {
   Widget buildTransitions(BuildContext context, Animation<double> animation,
       Animation<double> secondaryAnimation, Widget child) {
     return transitionsBuilder != null
-        ? transitionsBuilder(context, animation, secondaryAnimation, child) ?? child
+        ? transitionsBuilder!(context, animation, secondaryAnimation, child)
         : child;
   }
 }

@@ -52,7 +52,7 @@ class RouteTreeNode {
   RouteTreeNodeType type;
   List<AppRoute> routes = <AppRoute>[];
   List<RouteTreeNode> nodes = <RouteTreeNode>[];
-  RouteTreeNode parent;
+  RouteTreeNode? parent;
 
   bool isParameter() {
     return type == RouteTreeNodeType.parameter;
@@ -66,7 +66,7 @@ class RouteTree {
 
   // addRoute - add a route to the route tree
   void addRoute(AppRoute route) {
-    String path = route.route;
+    String? path = route.route;
     // is root/default route, just add it
     if (path == Navigator.defaultRouteName) {
       if (_hasDefaultRoute) {
@@ -74,20 +74,20 @@ class RouteTree {
         // could be affected
         throw ("Default route was already defined");
       }
-      var node = RouteTreeNode(path, RouteTreeNodeType.component);
+      var node = RouteTreeNode(path!, RouteTreeNodeType.component);
       node.routes = [route];
       _nodes.add(node);
       _hasDefaultRoute = true;
       return;
     }
-    if (path.startsWith("/")) {
+    if (path!.startsWith("/")) {
       path = path.substring(1);
     }
     List<String> pathComponents = path.split('/');
-    RouteTreeNode parent;
+    RouteTreeNode? parent;
     for (int i = 0; i < pathComponents.length; i++) {
       String component = pathComponents[i];
-      RouteTreeNode node = _nodeForComponent(component, parent);
+      RouteTreeNode? node = _nodeForComponent(component, parent);
       if (node == null) {
         RouteTreeNodeType type = _typeForComponent(component);
         node = RouteTreeNode(component, type);
@@ -109,12 +109,12 @@ class RouteTree {
     }
   }
 
-  AppRouteMatch matchRoute(String path) {
-    String usePath = path;
-    if (usePath.startsWith("/")) {
-      usePath = path.substring(1);
+  AppRouteMatch? matchRoute(String? path) {
+    String? usePath = path;
+    if (usePath is String && usePath.startsWith("/")) {
+      usePath = usePath.substring(1);
     }
-    List<String> components = usePath.split("/");
+    List<String> components = usePath is String ? usePath.split("/") : [];
     if (path == Navigator.defaultRouteName) {
       components = ["/"];
     }
@@ -129,7 +129,7 @@ class RouteTree {
 
       for (RouteTreeNode node in nodesToCheck) {
         String pathPart = checkComponent;
-        Map<String, List<String>> queryMap;
+        Map<String, List<String>>? queryMap;
         if (checkComponent.contains("?")) {
           var splitParam = checkComponent.split("?");
           pathPart = splitParam[0];
@@ -138,7 +138,7 @@ class RouteTree {
 
         bool isMatch = (node.part == pathPart || node.isParameter());
         if (isMatch) {
-          RouteTreeNodeMatch parentMatch = nodeMatches[node.parent];
+          RouteTreeNodeMatch parentMatch = nodeMatches[node.parent]!;
           RouteTreeNodeMatch match =
               RouteTreeNodeMatch.fromMatch(parentMatch, node);
           if (node.isParameter()) {
@@ -182,7 +182,7 @@ class RouteTree {
     _printSubTree();
   }
 
-  void _printSubTree({RouteTreeNode parent, int level = 0}) {
+  void _printSubTree({RouteTreeNode? parent, int level = 0}) {
     List<RouteTreeNode> nodes = parent != null ? parent.nodes : _nodes;
     for (RouteTreeNode node in nodes) {
       String indent = "";
@@ -196,7 +196,7 @@ class RouteTree {
     }
   }
 
-  RouteTreeNode _nodeForComponent(String component, RouteTreeNode parent) {
+  RouteTreeNode? _nodeForComponent(String component, RouteTreeNode? parent) {
     List<RouteTreeNode> nodes = _nodes;
     if (parent != null) {
       // search parent for sub-node matches
@@ -229,10 +229,10 @@ class RouteTree {
     if (query.startsWith('?')) query = query.substring(1);
     decode(String s) => Uri.decodeComponent(s.replaceAll('+', ' '));
     for (Match match in search.allMatches(query)) {
-      String key = decode(match.group(1));
-      String value = decode(match.group(2));
+      String key = decode(match.group(1)!);
+      String value = decode(match.group(2)!);
       if (params.containsKey(key)) {
-        params[key].add(value);
+        params[key]?.add(value);
       } else {
         params[key] = [value];
       }

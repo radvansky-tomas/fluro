@@ -34,7 +34,7 @@ class FluroRouter {
   final RouteTree _routeTree = RouteTree();
 
   /// Generic handler for when a route has not been defined
-  Handler notFoundHandler;
+  late Handler notFoundHandler;
 
   /// Internal helper method to return [notFound] page
   Route<Null> _notFoundRoute(BuildContext context, String path) {
@@ -46,7 +46,7 @@ class FluroRouter {
   }
 
   /// Widget being displayed while async routes are processed
-  Widget loadingWidget;
+  Widget? loadingWidget;
 
   /// In case of loading handler is missing, display simple loading view
   Widget _loadingWidgetFallback = Container(
@@ -77,7 +77,7 @@ class FluroRouter {
 
   /// Creates a [AppRoute] definition for the passed [Handler]. You can optionally provide a default transition type.
   void define(String routePath,
-      {@required Handler handler, TransitionType transitionType}) {
+      {required Handler handler, TransitionType? transitionType}) {
     print('Define - ' + routePath);
     _routeTree.addRoute(
       AppRoute(routePath, handler, transitionType: transitionType),
@@ -86,7 +86,7 @@ class FluroRouter {
 
   /// Creates a [AppRoute] definition for the passed [AsyncHandler]. You can optionally provide a default transition type.
   void defineAsync(String routePath,
-      {@required AsyncHandler handler, TransitionType transitionType}) {
+      {required AsyncHandler handler, TransitionType? transitionType}) {
     print('Define Async - ' + routePath);
     _routeTree.addRoute(
       AppRoute(routePath, handler, transitionType: transitionType),
@@ -94,10 +94,12 @@ class FluroRouter {
   }
 
   AppRoute getAppRoute(
-      {BuildContext buildContext, String path, TransitionType transitionType}) {
-    print('getAppRoute - ' + path);
-    AppRouteMatch match = _routeTree.matchRoute(path);
-    AppRoute route = match?.route;
+      {BuildContext? buildContext,
+      String? path,
+      TransitionType? transitionType}) {
+    print('getAppRoute - ' + path.toString());
+    AppRouteMatch? match = _routeTree.matchRoute(path);
+    AppRoute? route = match?.route;
     var handler = (route != null ? route.handler : notFoundHandler);
     var transition = transitionType;
     if (transitionType == null) {
@@ -112,10 +114,10 @@ class FluroRouter {
 
   RouteMatch _redirectRouteMatch(
       {dynamic handlerFunc,
-      RouteSettings settingsToUse,
-      AppRoute appRoute,
-      RouteTransitionsBuilder transitionsBuilder,
-      Duration transitionDuration}) {
+      RouteSettings? settingsToUse,
+      AppRoute? appRoute,
+      RouteTransitionsBuilder? transitionsBuilder,
+      Duration? transitionDuration}) {
     return RouteMatch(
       matchType: RouteMatchType.redirect,
       route: WebMaterialPageRoute<dynamic>(
@@ -129,20 +131,26 @@ class FluroRouter {
                 print('WebMaterialPageRoute Future Builder -> ' +
                     snapshot.connectionState.toString());
                 if (snapshot.hasData) {
-                  print('handlerFunc has data' + snapshot.data.runtimeType.toString());
+                  print('handlerFunc has data' +
+                      snapshot.data.runtimeType.toString());
                   if (snapshot.data is Redirect) {
                     if (UniversalPlatform.isWeb) {
-                      window.history.pushState(null, snapshot.data.route,
-                          (this.useHash ? '#' : '') + snapshot.data.route);
+                      window.history.pushState(
+                          null,
+                          (snapshot.data as Redirect).route,
+                          (this.useHash ? '#' : '') +
+                              (snapshot.data as Redirect).route);
                     }
-                    var newMatch = _matchRoute(context, snapshot.data.route,
+                    var newMatch = _matchRoute(
+                        context, (snapshot.data as Redirect).route,
                         routeSettings: settingsToUse,
-                        transitionType: appRoute.transitionType,
+                        transitionType: appRoute?.transitionType,
                         transitionDuration: transitionDuration,
                         transitionsBuilder: transitionsBuilder);
                     //TODO check how to execute animations here
                     print(newMatch.route);
-                    return newMatch.route.buildPage(context, null, null);
+                    return newMatch.route!.buildPage(context,
+                        newMatch.route!.animation!, newMatch.route!.animation!);
                   } else if (snapshot.data is Widget ||
                       snapshot.data is Future<Widget>) {
                     return _futureWidget(context, snapshot.data);
@@ -156,13 +164,13 @@ class FluroRouter {
   }
 
   /// Logic to process names [path] to [RouteMatch] and add desired parameters such as [routeSettings], [transitionType], [transitionDuration], [transitionsBuilder]
-  RouteMatch _matchRoute(BuildContext buildContext, String path,
-      {RouteSettings routeSettings,
-      TransitionType transitionType,
-      Duration transitionDuration = const Duration(milliseconds: 250),
-      RouteTransitionsBuilder transitionsBuilder}) {
-    print('_matchRoute - ' + path);
-    RouteSettings settingsToUse = routeSettings;
+  RouteMatch _matchRoute(BuildContext? buildContext, String? path,
+      {RouteSettings? routeSettings,
+      TransitionType? transitionType,
+      Duration? transitionDuration = const Duration(milliseconds: 250),
+      RouteTransitionsBuilder? transitionsBuilder}) {
+    print('_matchRoute - ' + path.toString());
+    RouteSettings? settingsToUse = routeSettings;
     if (routeSettings == null) {
       settingsToUse = RouteSettings(name: path);
     }
@@ -196,12 +204,12 @@ class FluroRouter {
             transitionDuration: transitionDuration,
             transitionsBuilder: transitionsBuilder);
       } else if (handlerFunc is Widget || handlerFunc is Future<Widget>) {
-        PageRoute createdRoute = _createPageRoute(appRoute, settingsToUse,
+        var createdRoute = _createPageRoute(appRoute, settingsToUse,
             handlerFunc, transitionDuration, transitionsBuilder);
 
         return RouteMatch(
           matchType: RouteMatchType.visual,
-          route: createdRoute,
+          route: createdRoute as PageRoute?,
         );
       } else {
         return _redirectRouteMatch(
@@ -221,10 +229,10 @@ class FluroRouter {
 
   Route<dynamic> _createPageRoute(
       AppRoute route,
-      RouteSettings routeSettings,
+      RouteSettings? routeSettings,
       dynamic handlerFunc,
-      Duration transitionDuration,
-      RouteTransitionsBuilder transitionsBuilder) {
+      Duration? transitionDuration,
+      RouteTransitionsBuilder? transitionsBuilder) {
     bool isNativeTransition = (route.transitionType == TransitionType.native ||
         route.transitionType == TransitionType.nativeModal);
     if (isNativeTransition && !UniversalPlatform.isWeb) {
@@ -269,12 +277,12 @@ class FluroRouter {
         routeTransitionsBuilder = transitionsBuilder;
       } else {
         routeTransitionsBuilder =
-            FluroTransitions.buildTransitions(route.transitionType);
+            FluroTransitions.buildTransitions(route.transitionType!);
       }
       if (UniversalPlatform.isWeb) {
         return WebMaterialPageRoute<dynamic>(
             settings: routeSettings,
-            transitionDuration: transitionDuration,
+            transitionDuration: transitionDuration ?? Duration.zero,
             transitionsBuilder: routeTransitionsBuilder,
             fullscreenDialog:
                 route.transitionType == TransitionType.materialFullScreenDialog,
@@ -288,7 +296,7 @@ class FluroRouter {
               Animation<double> secondaryAnimation) {
             return _futureWidget(context, handlerFunc);
           },
-          transitionDuration: transitionDuration,
+          transitionDuration: transitionDuration ?? Duration.zero,
           transitionsBuilder: routeTransitionsBuilder,
         );
       }
@@ -298,7 +306,7 @@ class FluroRouter {
   /// Route generation method. This function can be used as a way to create routes on-the-fly
   /// if any defined handler is found. It can also be used with the [MaterialApp.onGenerateRoute]
   /// property as callback to create routes that can be used with the [Navigator] class.
-  Route<dynamic> generator(RouteSettings routeSettings) {
+  Route<dynamic>? generator(RouteSettings routeSettings) {
     print('generator');
     RouteMatch match =
         _matchRoute(null, routeSettings.name, routeSettings: routeSettings);
@@ -321,8 +329,8 @@ class FluroRouter {
       return fullMatch.route != null &&
                   fullMatch.matchType == RouteMatchType.visual ||
               fullMatch.matchType == RouteMatchType.redirect
-          ? [fullMatch.route]
-          : [rootMatch.route];
+          ? [fullMatch.route!]
+          : [rootMatch.route!];
     } else {
       /// Requires full processing of partial matches, do not include empty routes
       var segments =
@@ -336,7 +344,7 @@ class FluroRouter {
           var joined = '/' + segments.sublist(0, i).join('/');
           var matched = _matchRoute(null, joined.isEmpty ? '/' : joined);
           if (matched.matchType != RouteMatchType.redirect) {
-            result.add(matched.route);
+            result.add(matched.route!);
             print('Adding:' + joined);
           } else {
             print('Not adding:' + joined);
@@ -351,27 +359,27 @@ class FluroRouter {
       } else {
         /// Requires partial match, but nothing found -> [rootMatch]
         print('Returning rootMatch');
-        return [rootMatch.route];
+        return [rootMatch.route!];
       }
     }
   }
 
   /// Helper function to return [result] from pop() method
-  pop<T extends Object>(BuildContext context, [T result]) =>
+  pop<T extends Object?>(BuildContext context, [T? result]) =>
       Navigator.pop(context, result);
 
   /// Use this method instead of generic [Navigator.push]
   Future navigateTo(BuildContext context, String path,
       {bool replace = false,
       bool clearStack = false,
-      TransitionType transition,
+      TransitionType? transition,
       Duration transitionDuration = const Duration(milliseconds: 250),
-      RouteTransitionsBuilder transitionBuilder}) {
+      RouteTransitionsBuilder? transitionBuilder}) {
     RouteMatch routeMatch = _matchRoute(context, path,
         transitionType: transition,
         transitionsBuilder: transitionBuilder,
         transitionDuration: transitionDuration);
-    Route<dynamic> route = routeMatch.route;
+    Route<dynamic>? route = routeMatch.route;
     Completer completer = Completer();
     Future future = completer.future;
     if (routeMatch.matchType == RouteMatchType.nonVisual) {
@@ -402,7 +410,7 @@ class FluroRouter {
 
   /// Finds a defined [AppRoute] for the path value. If no [AppRoute] definition was found
   /// then function will return null.
-  AppRouteMatch match(String path) {
+  AppRouteMatch? match(String path) {
     return _routeTree.matchRoute(path);
   }
 
