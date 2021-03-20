@@ -24,8 +24,8 @@ class Routes {
   static String contactDetail = "/home/contacts/:contactId";
 
   static void configureRoutes(FluroRouter router) {
-    router.notFoundHandler = Handler(
-        handlerFunc: (BuildContext context, Map<String, List<String>> params) {
+    router.notFoundHandler = Handler(handlerFunc:
+        (BuildContext? context, Map<String, List<String>>? params) {
       print("ROUTE WAS NOT FOUND !!!");
     });
     router.defineAsync(root,

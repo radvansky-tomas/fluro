@@ -13,7 +13,7 @@ class AuthService {
     return true;
   }
 
-  Future<String> getCurrentUser() async {
+  Future<String?> getCurrentUser() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString('email');
   }

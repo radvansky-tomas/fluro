@@ -149,8 +149,8 @@ class FluroRouter {
                         transitionsBuilder: transitionsBuilder);
                     //TODO check how to execute animations here
                     print(newMatch.route);
-                    return newMatch.route!.buildPage(context,
-                        newMatch.route!.animation!, newMatch.route!.animation!);
+                    var controller = AnimationController(vsync:Navigator.of(context));
+                    return newMatch.route!.buildPage(context,controller.view,controller.view);
                   } else if (snapshot.data is Widget ||
                       snapshot.data is Future<Widget>) {
                     return _futureWidget(context, snapshot.data);

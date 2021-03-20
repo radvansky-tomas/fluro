@@ -9,7 +9,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class LoginPageState extends State<LoginPage> {
-  AuthService _authService;
+  late AuthService _authService;
 
   @override
   void initState() {
@@ -32,12 +32,13 @@ class LoginPageState extends State<LoginPage> {
           subtitle: TextField(),
         ),
         ListTile(
-          title: RaisedButton(
+          title: ElevatedButton(
             child: Text('Login'),
             key: ValueKey('login'),
             onPressed: () async {
               await _authService.login('email', 'password');
-              Application.router.navigateTo(context, Routes.root,replace: true, clearStack: true);
+              Application.router.navigateTo(context, Routes.root,
+                  replace: true, clearStack: true);
             },
           ),
         ),

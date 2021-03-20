@@ -67,14 +67,16 @@ class Redirect {
 }
 
 ///
-typedef Route<T> RouteCreator<T>(RouteSettings route, Map<String, List<String>> parameters);
+typedef Route<T> RouteCreator<T>(
+    RouteSettings route, Map<String, List<String>> parameters);
 
 /// Returns dynamic [Future] which contains either [Widget] or [Redirect]
 typedef Future<dynamic> AsyncHandlerFunc(
     BuildContext context, Map<String, List<String>> parameters);
 
 /// Returns either [Widget] or [Redirect]
-typedef dynamic HandlerFunc(BuildContext context, Map<String, List<String>>? parameters);
+typedef dynamic HandlerFunc(
+    BuildContext context, Map<String, List<String>>? parameters);
 
 ///
 class AppRoute {

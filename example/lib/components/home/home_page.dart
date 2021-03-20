@@ -29,9 +29,9 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  TabController _tabController;
-  AuthService _authService;
-  int currentIndex;
+  TabController? _tabController;
+  late AuthService _authService;
+  late int currentIndex;
 
   @override
   void initState() {
@@ -39,7 +39,7 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _authService = AuthService();
     _tabController = TabController(length: 2, vsync: this);
     currentIndex = widget.selectedTab;
-    _tabController.index = currentIndex;
+    _tabController?.index = currentIndex;
     print('Current Tab:$currentIndex');
   }
 
@@ -47,7 +47,7 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: (Text(_tabController.index == 0 ? 'Dashboard' : 'Contacts')),
+        title: (Text(_tabController?.index == 0 ? 'Dashboard' : 'Contacts')),
         leading: IconButton(
           icon: Icon(Icons.exit_to_app),
           onPressed: () async {
@@ -88,7 +88,7 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    this._tabController.dispose();
+    this._tabController?.dispose();
     this._tabController = null;
     super.dispose();
   }

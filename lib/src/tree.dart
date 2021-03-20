@@ -31,7 +31,7 @@ class RouteTreeNodeMatch {
   // constructors
   RouteTreeNodeMatch(this.node);
 
-  RouteTreeNodeMatch.fromMatch(RouteTreeNodeMatch match, this.node) {
+  RouteTreeNodeMatch.fromMatch(RouteTreeNodeMatch? match, this.node) {
     parameters = <String, List<String>>{};
     if (match != null) {
       parameters.addAll(match.parameters);
@@ -39,7 +39,7 @@ class RouteTreeNodeMatch {
   }
 
   // properties
-  RouteTreeNode node;
+  RouteTreeNode? node;
   Map<String, List<String>> parameters = <String, List<String>>{};
 }
 
@@ -50,8 +50,8 @@ class RouteTreeNode {
   // properties
   String part;
   RouteTreeNodeType type;
-  List<AppRoute> routes = <AppRoute>[];
-  List<RouteTreeNode> nodes = <RouteTreeNode>[];
+  List<AppRoute>? routes = <AppRoute>[];
+  List<RouteTreeNode>? nodes = <RouteTreeNode>[];
   RouteTreeNode? parent;
 
   bool isParameter() {
@@ -95,14 +95,14 @@ class RouteTree {
         if (parent == null) {
           _nodes.add(node);
         } else {
-          parent.nodes.add(node);
+          parent.nodes?.add(node);
         }
       }
       if (i == pathComponents.length - 1) {
         if (node.routes == null) {
           node.routes = [route];
         } else {
-          node.routes.add(route);
+          node.routes?.add(route);
         }
       }
       parent = node;
@@ -138,7 +138,7 @@ class RouteTree {
 
         bool isMatch = (node.part == pathPart || node.isParameter());
         if (isMatch) {
-          RouteTreeNodeMatch parentMatch = nodeMatches[node.parent]!;
+          RouteTreeNodeMatch? parentMatch = node.parent != null ? nodeMatches[node.parent] : null;
           RouteTreeNodeMatch match =
               RouteTreeNodeMatch.fromMatch(parentMatch, node);
           if (node.isParameter()) {
@@ -151,7 +151,7 @@ class RouteTree {
 //          print("matched: ${node.part}, isParam: ${node.isParameter()}, params: ${match.parameters}");
           currentMatches[node] = match;
           if (node.nodes != null) {
-            nextNodes.addAll(node.nodes);
+            nextNodes.addAll(node.nodes!);
           }
         }
       }
@@ -164,12 +164,12 @@ class RouteTree {
     List<RouteTreeNodeMatch> matches = nodeMatches.values.toList();
     if (matches.length > 0) {
       RouteTreeNodeMatch match = matches.first;
-      RouteTreeNode nodeToUse = match.node;
+      RouteTreeNode? nodeToUse = match.node;
 //			print("using match: ${match}, ${nodeToUse?.part}, ${match?.parameters}");
       if (nodeToUse != null &&
           nodeToUse.routes != null &&
-          nodeToUse.routes.length > 0) {
-        List<AppRoute> routes = nodeToUse.routes;
+          nodeToUse.routes!.length > 0) {
+        List<AppRoute> routes = nodeToUse.routes!;
         AppRouteMatch routeMatch = AppRouteMatch(routes[0]);
         routeMatch.parameters = match.parameters;
         return routeMatch;
@@ -183,28 +183,32 @@ class RouteTree {
   }
 
   void _printSubTree({RouteTreeNode? parent, int level = 0}) {
-    List<RouteTreeNode> nodes = parent != null ? parent.nodes : _nodes;
-    for (RouteTreeNode node in nodes) {
-      String indent = "";
-      for (int i = 0; i < level; i++) {
-        indent += "    ";
-      }
-      print("$indent${node.part}: total routes=${node.routes.length}");
-      if (node.nodes != null && node.nodes.length > 0) {
-        _printSubTree(parent: node, level: level + 1);
+    List<RouteTreeNode>? nodes = parent != null ? parent.nodes : _nodes;
+    if (nodes is List<RouteTreeNode>) {
+      for (RouteTreeNode node in nodes) {
+        String indent = "";
+        for (int i = 0; i < level; i++) {
+          indent += "    ";
+        }
+        print("$indent${node.part}: total routes=${node.routes?.length}");
+        if (node.nodes != null && node.nodes!.length > 0) {
+          _printSubTree(parent: node, level: level + 1);
+        }
       }
     }
   }
 
   RouteTreeNode? _nodeForComponent(String component, RouteTreeNode? parent) {
-    List<RouteTreeNode> nodes = _nodes;
+    List<RouteTreeNode>? nodes = _nodes;
     if (parent != null) {
       // search parent for sub-node matches
       nodes = parent.nodes;
     }
-    for (RouteTreeNode node in nodes) {
-      if (node.part == component) {
-        return node;
+    if (nodes is List<RouteTreeNode>) {
+      for (RouteTreeNode node in nodes) {
+        if (node.part == component) {
+          return node;
+        }
       }
     }
     return null;
